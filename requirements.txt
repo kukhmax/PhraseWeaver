@@ -1,0 +1,15 @@
+# GUI Framework
+kivy
+kivymd
+
+# Database
+# (SQLite3 встроен в Python, поэтому здесь ничего не нужно)
+
+# Networking & Scraping
+requests
+beautifulsoup4
+duckduckgo-search
+
+# AI & Services
+translators
+gTTS
