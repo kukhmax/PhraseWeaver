@@ -1,13 +1,36 @@
 import os
 from kivymd.app import MDApp
 from kivy.core.window import Window
+from kivy.lang import Builder
+from kivy.uix.screenmanager import ScreenManager
+
 from core.database import DatabaseManager
+from screens.deck_list_screen import DeckListScreen
 
 # --- Конфигурация для удобства разработки на ПК ---
 # Мы устанавливаем фиксированный размер окна, имитирующий экран смартфона.
 # Это не повлияет на финальное приложение на Android (там оно будет на весь экран),
 # но для разработки на компьютере это очень удобно.
 Window.size = (400, 700)
+
+# Загружаем строку с KV разметкой. Это как HTML для веба.
+# Мы описываем здесь структуру виджетов.
+KV = """
+<DeckListScreen>:
+    name: 'deck_list'
+
+    MDBoxLayout:
+        orientation: 'vertical'
+
+        MDTopAppBar:
+            title: "PhraseWeaver"
+            elevation: 4
+            pos_hint: {"top": 1}
+
+        ScrollView:
+            MDList:
+                id: deck_list # Этот id мы используем в DeckListScreen для доступа к списку
+"""
 
 
 class PhraseWeaverApp(MDApp):
@@ -25,7 +48,19 @@ class PhraseWeaverApp(MDApp):
         # Создаем экземпляр менеджера БД при запуске приложения
         self.db_manager = DatabaseManager()
         
-        return None
+        # Загружаем нашу KV разметку
+        Builder.load_string(KV)
+
+        # Создаем ScreenManager, который будет управлять нашими экранами
+        self.sm = ScreenManager()
+        self.sm.add_widget(DeckListScreen())
+        
+        # Для теста добавим одну колоду, если их нет
+        if not self.db_manager.get_all_decks():
+            self.db_manager.create_deck("Мои первые фразы")
+            self.db_manager.create_deck("Путешествия")
+
+        return self.sm
     
     def on_stop(self):
         """
