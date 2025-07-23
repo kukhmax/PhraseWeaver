@@ -201,3 +201,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Virtualenv
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Buildozer files
+.buildozer/
+bin/
+build/
+dist/
+*.apk
+*.aab
