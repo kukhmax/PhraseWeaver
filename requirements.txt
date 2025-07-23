@@ -1,15 +1,14 @@
-# GUI Framework
-kivy
-kivymd
+# --- GUI Framework ---
+# Kivy и KivyMD тесно связаны, используем стабильные версии
+kivy>=2.2.0
+kivymd>=1.2.0
 
-# Database
-# (SQLite3 встроен в Python, поэтому здесь ничего не нужно)
+# --- Networking & Scraping ---
+requests>=2.31.0         # Стандартная библиотека, берем свежую
+beautifulsoup4>=4.12.0   # Стандарт для парсинга, берем свежую
+duckduckgo-search==5.0.0  # ВАЖНО: Асинхронный API (AsyncDDGS) стабилен в версиях 4.x и 5.x.
+aiohttp>=3.9.0           # Наш асинхронный клиент
 
-# Networking & Scraping
-requests
-beautifulsoup4
-duckduckgo-search
-
-# AI & Services
-translators
-gTTS
+# --- AI & Services ---
+googletrans==4.0.0-rc1   # Эта версия проверена и работает
+gTTS>=2.5.0              # Берем свежую стабильную версию
