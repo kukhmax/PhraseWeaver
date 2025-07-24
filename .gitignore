@@ -224,3 +224,4 @@ dist/
 *.db
 
 *.mp3
+.vscode

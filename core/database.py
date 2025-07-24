@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import logging
+from datetime import datetime, timezone
 
 # Настраиваем логирование, чтобы видеть, что происходит внутри модуля
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -16,6 +17,66 @@ class DatabaseManager:
         self.db_name = db_name
         self.conn = None
         self._init_db()
+
+    def get_cards_for_review(self, deck_id: int, limit: int = 20) -> list:
+        """
+        Возвращает список карточек из указанной колоды, которые пора повторить.
+        """
+        now_iso = datetime.now(timezone.utc).isoformat()
+        sql = """
+        SELECT tc.id, tc.front, tc.back, tc.srs_level, tc.card_type, c.examples
+        FROM training_cards tc
+        JOIN concepts c ON tc.concept_id = c.id
+        WHERE c.deck_id = ? AND tc.due_date <= ?
+        ORDER BY tc.due_date
+        LIMIT ?
+        """
+        conn = self._get_connection()
+        if conn:
+            try:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(sql, (deck_id, now_iso, limit))
+                cards = [dict(row) for row in cursor.fetchall()]
+                logging.info(f"Найдено {len(cards)} карточек для повторения в колоде {deck_id}.")
+                return cards
+            except sqlite3.Error as e:
+                logging.error(f"Ошибка при получении карточек для повторения: {e}")
+        return []
+
+    def count_cards_for_review(self, deck_id: int) -> int:
+        """Считает количество карточек для повторения в колоде."""
+        now_iso = datetime.now(timezone.utc).isoformat()
+        sql = """
+        SELECT COUNT(tc.id)
+        FROM training_cards tc
+        JOIN concepts c ON tc.concept_id = c.id
+        WHERE c.deck_id = ? AND tc.due_date <= ?
+        """
+        conn = self._get_connection()
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute(sql, (deck_id, now_iso))
+                return cursor.fetchone()[0]
+            except sqlite3.Error as e:
+                logging.error(f"Ошибка при подсчете карточек: {e}")
+        return 0
+
+    def update_card_srs(self, card_id: int, new_srs_level: int, new_due_date: str):
+        """Обновляет SRS-данные карточки."""
+        sql = "UPDATE training_cards SET srs_level = ?, due_date = ? WHERE id = ?"
+        conn = self._get_connection()
+        if conn:
+            try:
+                with conn:
+                    cursor = conn.cursor()
+                    cursor.execute(sql, (new_srs_level, new_due_date, card_id))
+                    logging.info(f"Карточка ID {card_id} обновлена: уровень {new_srs_level}, дата {new_due_date}")
+                    return True
+            except sqlite3.Error as e:
+                logging.error(f"Ошибка при обновлении карточки: {e}")
+        return False
 
     # --- Методы для работы с Концептами и Карточками ---
 
@@ -65,7 +126,6 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logging.error(f"Ошибка при создании концепта и карточек: {e}")
             return None
-
 
     def _generate_cards_for_concept(self, cursor, concept_id, enriched_data):
         """Вспомогательный метод для генерации карточек. Вызывается внутри транзакции."""

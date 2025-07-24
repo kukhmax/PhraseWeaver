@@ -7,6 +7,7 @@ from kivy.uix.screenmanager import ScreenManager
 from core.database import DatabaseManager
 from screens.deck_list_screen import DeckListScreen
 from screens.creation_screen import CreationScreen
+from screens.training_screen import TrainingScreen
 
 # --- Конфигурация для удобства разработки на ПК ---
 # Мы устанавливаем фиксированный размер окна, имитирующий экран смартфона.
@@ -21,6 +22,7 @@ ScreenManager:
     # id: screen_manager
     DeckListScreen:
     CreationScreen:
+    TrainingScreen:
 
 <DeckListScreen>:
     name: 'deck_list'
@@ -90,6 +92,79 @@ ScreenManager:
             pos_hint: {"center_x": 0.5}
             MDButtonText:
                 text: "Сохранить в колоду"
+<TrainingScreen>:
+    name: 'training_screen'
+    MDBoxLayout:
+        orientation: 'vertical'
+        
+        MDTopAppBar:
+            title: "Тренировка"
+            pos_hint: {"top": 1}
+            left_action_items: [["arrow-left", lambda x: app.sm.switch_to(app.sm.get_screen('deck_list'), direction='right')]]
+
+        MDLinearProgressIndicator:
+            id: progress_bar
+            value: 0
+
+        MDBoxLayout:
+            orientation: 'vertical'
+            padding: "24dp"
+            spacing: "24dp"
+            
+            MDCard:
+                style: "filled"
+                padding: "16dp"
+                MDLabel:
+                    id: front_card_label
+                    text: "Загрузка карточки..."
+                    halign: "center"
+                    # ИСПРАВЛЕНО: два свойства вместо одного
+                    font_style: "Title" 
+                    role: "large"
+
+            MDCard:
+                style: "outlined"
+                padding: "16dp"
+                MDLabel:
+                    id: back_card_label
+                    text: ""
+                    halign: "center"
+                    # ИСПРАВЛЕНО: два свойства вместо одного
+                    font_style: "Headline"
+                    role: "small"
+                    
+            MDButton:
+                style: "filled"
+                pos_hint: {"center_x": 0.5}
+                on_release: root.show_answer()
+                MDButtonText:
+                    text: "Показать ответ"
+        
+        MDBoxLayout:
+            id: answer_buttons
+            orientation: 'horizontal'
+            adaptive_height: True
+            padding: "16dp"
+            spacing: "16dp"
+            pos_hint: {"center_x": 0.5}
+            opacity: 0 
+            disabled: True
+
+            MDButton:
+                style: "tonal"
+                on_release: root.evaluate_answer("again")
+                MDButtonText:
+                    text: "Снова"
+            MDButton:
+                style: "tonal"
+                on_release: root.evaluate_answer("good")
+                MDButtonText:
+                    text: "Хорошо"
+            MDButton:
+                style: "tonal"
+                on_release: root.evaluate_answer("easy")
+                MDButtonText:
+                    text: "Легко"
 """
 
 

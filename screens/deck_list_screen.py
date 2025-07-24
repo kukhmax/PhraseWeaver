@@ -1,6 +1,6 @@
 from kivy.clock import Clock
 from kivymd.app import MDApp
-from kivymd.uix.list import MDListItem, MDListItemLeadingIcon, MDListItemHeadlineText
+from kivymd.uix.list import MDListItem, MDListItemLeadingIcon, MDListItemHeadlineText, MDListItemSupportingText
 from kivymd.uix.screen import MDScreen
 
 class DeckListScreen(MDScreen):
@@ -37,8 +37,11 @@ class DeckListScreen(MDScreen):
             return
 
         for deck in decks:
+            # Считаем карточки для этой колоды
+            review_count = app.db_manager.count_cards_for_review(deck['id'])
+
             item = MDListItem(
-                on_release=lambda x, deck_id=deck['id']: self.on_deck_press(deck_id)
+                on_release=lambda x, deck_id=deck['id']: self.go_to_training(deck_id)
             )
             item.add_widget(
                 MDListItemLeadingIcon(icon="cards-outline")
@@ -46,11 +49,27 @@ class DeckListScreen(MDScreen):
             item.add_widget(
                 MDListItemHeadlineText(text=f"{deck['name']}")
             )
+            item.add_widget(
+                MDListItemSupportingText(text=f"К повторению: {review_count}"
+            ))
             deck_list_widget.add_widget(item)
 
-    def on_deck_press(self, deck_id):
-        """ Обработчик нажатия на колоду."""
-        print(f"Нажата колода с ID: {deck_id}. Переход пока не реализован.")
+    # def on_deck_press(self, deck_id):
+    #     """ Обработчик нажатия на колоду."""
+    #     print(f"Нажата колода с ID: {deck_id}. Переход пока не реализован.")
+
+    def go_to_training(self, deck_id):
+        """Переходит на экран тренировки для выбранной колоды."""
+        app = MDApp.get_running_app()
+        # Проверяем, есть ли что повторять
+        if app.db_manager.count_cards_for_review(deck_id) == 0:
+            print("В этой колоде нет карточек для повторения.")
+            # Можно показать Snackbar
+            return
+            
+        training_screen = app.sm.get_screen('training_screen')
+        training_screen.deck_id = deck_id # Передаем ID колоды на экран тренировки
+        app.sm.current = 'training_screen'
     
     def go_to_creation_screen(self):
         """Переходит на экран создания карточки."""
