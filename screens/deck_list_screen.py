@@ -1,18 +1,23 @@
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.list import MDList, OneLineAvatarIconListItem, IconLeftWidget
+from kivy.clock import Clock
 from kivymd.app import MDApp
+from kivymd.uix.list import MDListItem, MDListItemLeadingIcon, MDListItemHeadlineText
+from kivymd.uix.screen import MDScreen
 
 class DeckListScreen(MDScreen):
     """Экран для отображения списка колод."""
 
-    def on_pre_enter(self, *args):
+    def on_enter(self, *args):
         """
-        Метод вызывается прямо перед тем, как экран станет видимым.
-        Идеальное место для обновления данных на экране.
+        Метод вызывается, когда экран становится видимым.
+        Мы используем Clock.schedule_once, чтобы гарантировать,
+        что все 'ids' будут доступны к моменту вызова load_decks.
         """
-        self.load_decks()
+        # Выполнить self.load_decks() через один кадр (примерно 1/60 секунды).
+        # Аргумент 0 означает "на следующем доступном кадре".
+        Clock.schedule_once(self.load_decks, 0)
 
-    def load_decks(self):
+
+    def load_decks(self, dt=None):
         """
         Загружает колоды из БД и отображает их в виде списка.
         """
@@ -25,27 +30,43 @@ class DeckListScreen(MDScreen):
         deck_list_widget.clear_widgets() # Очищаем старый список перед обновлением
 
         if not decks:
-            # Можно добавить сообщение, если колод нет
-            item = OneLineAvatarIconListItem(text="Колод пока нет. Создайте первую!")
-            icon = IconLeftWidget(icon="plus-box-outline")
-            item.add_widget(icon)
+            item = MDListItem()
+            item.add_widget(MDListItemLeadingIcon(icon="plus-box-outline"))
+            item.add_widget(MDListItemHeadlineText(text="Колод пока нет. Создайте первую!"))
             deck_list_widget.add_widget(item)
             return
 
         for deck in decks:
-            # Для каждой колоды создаем элемент списка
-            item = OneLineAvatarIconListItem(
-                text=f"{deck['name']}",
-                # Добавляем id колоды к виджету, чтобы потом его использовать
-                # Например, при клике, чтобы перейти к карточкам этой колоды
+            item = MDListItem(
                 on_release=lambda x, deck_id=deck['id']: self.on_deck_press(deck_id)
             )
-            # Добавляем иконку
-            icon = IconLeftWidget(icon="cards-outline")
-            item.add_widget(icon)
+            item.add_widget(
+                MDListItemLeadingIcon(icon="cards-outline")
+            )
+            item.add_widget(
+                MDListItemHeadlineText(text=f"{deck['name']}")
+            )
             deck_list_widget.add_widget(item)
 
     def on_deck_press(self, deck_id):
-        """Обработчик нажатия на колоду."""
-        print(f"Нажата колода с ID: {deck_id}")
-        # Здесь в будущем будет логика перехода на экран карточек этой колоды
+        """ Обработчик нажатия на колоду."""
+        print(f"Нажата колода с ID: {deck_id}. Переход пока не реализован.")
+    
+    def go_to_creation_screen(self):
+        """Переходит на экран создания карточки."""
+        # Для простоты MVP, будем добавлять карточку в первую колоду.
+        # В будущем здесь будет диалог выбора колоды.
+        app = MDApp.get_running_app()
+        all_decks = app.db_manager.get_all_decks()
+        if not all_decks:
+            # Обработка случая, если нет колод
+            print("Сначала создайте колоду!")
+            return
+            
+        first_deck_id = all_decks[0]['id']
+        
+        # Устанавливаем deck_id в экран создания ДО перехода
+        creation_screen = app.sm.get_screen('creation_screen')
+        creation_screen.deck_id = first_deck_id
+        
+        app.sm.current = 'creation_screen'

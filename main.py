@@ -6,6 +6,7 @@ from kivy.uix.screenmanager import ScreenManager
 
 from core.database import DatabaseManager
 from screens.deck_list_screen import DeckListScreen
+from screens.creation_screen import CreationScreen
 
 # --- Конфигурация для удобства разработки на ПК ---
 # Мы устанавливаем фиксированный размер окна, имитирующий экран смартфона.
@@ -16,20 +17,79 @@ Window.size = (400, 700)
 # Загружаем строку с KV разметкой. Это как HTML для веба.
 # Мы описываем здесь структуру виджетов.
 KV = """
+ScreenManager:
+    # id: screen_manager
+    DeckListScreen:
+    CreationScreen:
+
 <DeckListScreen>:
     name: 'deck_list'
-
     MDBoxLayout:
         orientation: 'vertical'
-
         MDTopAppBar:
             title: "PhraseWeaver"
             elevation: 4
             pos_hint: {"top": 1}
-
         ScrollView:
             MDList:
-                id: deck_list # Этот id мы используем в DeckListScreen для доступа к списку
+                id: deck_list
+    MDFabButton: # <--- ИСПРАВЛЕНО
+        icon: "plus"
+        pos_hint: {"right": 0.95, "bottom": 0.05}
+        on_release: root.go_to_creation_screen()
+<CreationScreen>:
+    name: 'creation_screen'
+    MDBoxLayout:
+        orientation: 'vertical'
+        spacing: "12dp"
+        padding: "12dp"
+
+        MDTopAppBar:
+            title: "Создать карточку"
+            pos_hint: {"top": 1}
+            left_action_items: [["arrow-left", lambda x: app.sm.switch_to(app.sm.get_screen('deck_list'), direction='right')]]
+
+        MDTextField:
+            id: full_sentence_field
+            hint_text: "Полное предложение (контекст)"
+            helper_text: "Пример: It turned out to be a blessing in disguise."
+            helper_text_mode: "on_focus"
+            mode: "filled"
+
+        MDTextField:
+            id: keyword_field
+            hint_text: "Ключевая фраза"
+            helper_text: "Пример: a blessing in disguise"
+            helper_text_mode: "on_focus"
+            mode: "filled"
+
+        MDBoxLayout:
+            id: enrich_button_container
+            adaptive_height: True
+            pos_hint: {"center_x": 0.5}
+            MDButton:
+                id: enrich_button
+                style: "filled" # 'filled' это аналог 'raised'
+                on_release: root.enrich_button_pressed()
+                MDButtonText:
+                    text: "Обогатить ✨"
+        
+        ScrollView:
+            MDBoxLayout:
+                id: results_box
+                orientation: 'vertical'
+                adaptive_height: True
+                spacing: "8dp"
+                padding: "8dp"
+
+        MDButton:
+            id: save_button
+            style: "filled" # или 'tonal'
+            disabled: True
+            on_release: root.save_concept()
+            pos_hint: {"center_x": 0.5}
+            MDButtonText:
+                text: "Сохранить в колоду"
 """
 
 
@@ -42,26 +102,17 @@ class PhraseWeaverApp(MDApp):
     db_manager = None # Добавляем атрибут для хранения менеджера БД
 
     def build(self):
-        self.theme_cls.primary_palette = "Blue"
+        self.theme_cls.primary_palette = "Indigo"
         self.theme_cls.theme_style = "Light"
 
-        # Создаем экземпляр менеджера БД при запуске приложения
         self.db_manager = DatabaseManager()
+        self.sm = Builder.load_string(KV)
         
-        # Загружаем нашу KV разметку
-        Builder.load_string(KV)
-
-        # Создаем ScreenManager, который будет управлять нашими экранами
-        self.sm = ScreenManager()
-        self.sm.add_widget(DeckListScreen())
-        
-        # Для теста добавим одну колоду, если их нет
         if not self.db_manager.get_all_decks():
-            self.db_manager.create_deck("Мои первые фразы")
-            self.db_manager.create_deck("Путешествия")
+            self.db_manager.create_deck("General")
 
         return self.sm
-    
+
     def on_stop(self):
         """
         Этот метод Kivy вызывает, когда приложение закрывается.
@@ -69,7 +120,6 @@ class PhraseWeaverApp(MDApp):
         """
         if self.db_manager:
             self.db_manager.close()
-
 
 def setup_environment():
     """
@@ -79,10 +129,8 @@ def setup_environment():
     # ТЗ требует, чтобы аудиофайлы хранились в `assets/audio`.
     # Этот код проверяет, существует ли эта папка, и создает ее, если нет.
     # Это предотвратит ошибки, если приложение попытается сохранить файл в несуществующую директорию.
-    audio_path = 'assets/audio'
-    if not os.path.exists(audio_path):
-        print(f"Creating directory: {audio_path}")
-        os.makedirs(audio_path)
+    if not os.path.exists('assets/audio'):
+        os.makedirs('assets/audio')
 
 
 # --- Точка входа в приложение ---
@@ -92,11 +140,8 @@ if __name__ == '__main__':
     
     # 1. Готовим окружение (создаем папки)
     setup_environment()
-    
-    # 2. Создаем экземпляр нашего приложения
-    app = PhraseWeaverApp()
-    
-    # 3. Запускаем его. Эта команда запускает цикл событий Kivy,
+
+    # 2. Создаем экземпляр и Запускаем его. Эта команда запускает цикл событий Kivy,
     # отрисовывает окно и ждет действий пользователя. Программа будет
     # работать до тех пор, пока пользователь не закроет окно.
-    app.run()
+    PhraseWeaverApp().run()
