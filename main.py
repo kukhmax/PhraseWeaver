@@ -38,7 +38,7 @@ ScreenManager:
     MDFabButton: # <--- ИСПРАВЛЕНО
         icon: "plus"
         pos_hint: {"right": 0.95, "bottom": 0.05}
-        on_release: root.go_to_creation_screen()
+        on_release: root.show_create_deck_dialog()
 <CreationScreen>:
     name: 'creation_screen'
     MDBoxLayout:
