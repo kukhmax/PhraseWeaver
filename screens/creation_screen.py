@@ -13,6 +13,7 @@ from core.enrichment import enrich_phrase
 class CreationScreen(MDScreen):
     deck_id = None # Будем передавать ID колоды при переходе на этот экран
     enriched_data = None # Здесь будем хранить обогащенные данные
+    spinner = None
 
     def on_enter(self, *args):
         """Планируем очистку экрана."""
@@ -21,6 +22,9 @@ class CreationScreen(MDScreen):
     # Создаем новый метод, который будет вызываться Clock
     def setup_screen(self, dt=None):
         """Очищаем состояние экрана при входе."""
+        if self.spinner:
+            self.show_spinner(False)
+
         self.ids.full_sentence_field.text = ""
         self.ids.keyword_field.text = ""
         self.ids.results_box.clear_widgets()
@@ -50,11 +54,18 @@ class CreationScreen(MDScreen):
 
     def run_enrichment(self, keyword):
         """Выполняет асинхронную функцию обогащения."""
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        self.enriched_data = loop.run_until_complete(enrich_phrase(keyword))
-        loop.close()
-        # Когда данные получены, вызываем метод для обновления UI в главном потоке
+        # Используем asyncio.run() - это более современный и простой способ
+        # запустить асинхронную функцию из синхронного кода.
+        # Он сам управляет созданием и закрытием цикла.
+        try:
+            self.enriched_data = asyncio.run(enrich_phrase(keyword))
+        except Exception as e:
+            print(f"Ошибка в потоке обогащения: {e}")
+            self.enriched_data = None
+        
+        # Когда `asyncio.run` завершится, все асинхронные операции
+        # (включая генерацию аудио) уже будут выполнены.
+        # Теперь безопасно обновлять UI.
         self.update_ui_with_results()
 
     @mainthread
@@ -86,30 +97,30 @@ class CreationScreen(MDScreen):
 
     @mainthread
     def show_spinner(self, show):
-        """Показывает или прячет спиннер загрузки."""
-        spinner_id = "spinner"
+        """Показывает или прячет спиннер загрузки (ИСПРАВЛЕНО)."""
         container = self.ids.get('enrich_button_container')
-        if not container:
-            return
+        if not container: return
 
         if show:
-            # Прячем кнопку, чтобы спиннер встал на ее место
+            # Если спиннер уже существует (на всякий случай), сначала удалим его
+            if self.spinner and self.spinner.parent:
+                self.spinner.parent.remove_widget(self.spinner)
+            
             self.ids.enrich_button.opacity = 0
             self.ids.enrich_button.disabled = True
             
-            if not self.ids.get(spinner_id):
-                # ИСПОЛЬЗУЕМ НОВЫЙ КЛАСС
-                spinner = MDCircularProgressIndicator(type="indeterminate") # 'indeterminate' значит "крутится без конца"
-                spinner.id = spinner_id
-                # Добавляем его в контейнер
-                container.add_widget(spinner)
+            # Создаем новый спиннер и сохраняем ссылку на него
+            self.spinner = MDCircularProgressIndicator()
+            container.add_widget(self.spinner)
         else:
-            # Показываем кнопку обратно
             self.ids.enrich_button.opacity = 1
             self.ids.enrich_button.disabled = False
-            spinner = self.ids.get(spinner_id)
-            if spinner:
-                container.remove_widget(spinner)
+            
+            # Если ссылка на спиннер существует и у него есть родитель, удаляем
+            if self.spinner and self.spinner.parent:
+                self.spinner.parent.remove_widget(self.spinner)
+            
+            self.spinner = None # Сбрасываем ссылку
     
     def save_concept(self):
         """Сохраняет новый концепт и карточки в базу данных."""
