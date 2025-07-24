@@ -10,6 +10,11 @@ from kivymd.uix.progressindicator import MDCircularProgressIndicator
 
 from core.enrichment import enrich_phrase
 
+import logging
+
+# Настраиваем логирование, чтобы видеть, что происходит внутри модуля
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 class CreationScreen(MDScreen):
     deck_id = None # Будем передавать ID колоды при переходе на этот экран
     enriched_data = None # Здесь будем хранить обогащенные данные
@@ -122,11 +127,35 @@ class CreationScreen(MDScreen):
             
             self.spinner = None # Сбрасываем ссылку
     
+    # ... (в классе CreationScreen)
+
     def save_concept(self):
         """Сохраняет новый концепт и карточки в базу данных."""
         if not self.enriched_data or not self.deck_id:
             return
-            
-        print("Сохранение в БД...")
+
         app = MDApp.get_running_app()
+        db_manager = app.db_manager
+        
+        full_sentence = self.ids.full_sentence_field.text.strip()
+        # Добавляем полное предложение в enriched_data для удобства
+        self.enriched_data['full_sentence'] = full_sentence
+        
+        logging.info("Сохранение концепта в БД...")
+        result = db_manager.create_concept_and_cards(
+            deck_id=self.deck_id,
+            full_sentence=full_sentence,
+            enriched_data=self.enriched_data
+        )
+
+        if result == "duplicate":
+            # Здесь можно показать пользователю красивое уведомление (Snackbar)
+            logging.warning("Попытка сохранить дубликат.")
+            # Например: MDApp.get_running_app().show_toast("Эта фраза уже есть!")
+        elif result:
+            logging.info(f"Концепт успешно сохранен с ID {result}.")
+        else:
+            logging.error("Не удалось сохранить концепт.")
+
+        # После сохранения возвращаемся на экран колод
         app.sm.current = 'deck_list'

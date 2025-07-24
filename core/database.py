@@ -17,6 +17,102 @@ class DatabaseManager:
         self.conn = None
         self._init_db()
 
+    # --- Методы для работы с Концептами и Карточками ---
+
+    def create_concept_and_cards(self, deck_id, full_sentence, enriched_data):
+        """
+        Создает новый "Концепт" и автоматически генерирует для него
+        тренировочные карточки. Это транзакционная операция.
+        """
+        # 1. Готовим данные для сохранения
+        keyword_phrase = enriched_data['keyword_phrase']
+        translations = json.dumps(enriched_data['translation']) # Сохраняем как JSON
+        examples = json.dumps(enriched_data['examples'])
+        audio_paths = json.dumps(enriched_data['audio_paths'])
+        
+        # Проверка на дубликат по ключевой фразе
+        check_sql = "SELECT id FROM concepts WHERE keyword_phrase = ?"
+        # Код создания концепта
+        concept_sql = """
+        INSERT INTO concepts (deck_id, full_sentence, keyword_phrase, translations, examples, audio_paths)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """
+        
+        conn = self._get_connection()
+        if not conn:
+            return None
+            
+        try:
+            with conn: # `with conn` обеспечивает, что вся операция будет одной транзакцией
+                cursor = conn.cursor()
+                
+                # Проверяем, не существует ли уже такая ключевая фраза
+                cursor.execute(check_sql, (keyword_phrase,))
+                if cursor.fetchone():
+                    logging.warning(f"Концепт с фразой '{keyword_phrase}' уже существует. Сохранение отменено.")
+                    return "duplicate" # Возвращаем специальный маркер
+
+                # 2. Создаем Концепт
+                cursor.execute(concept_sql, (deck_id, full_sentence, keyword_phrase, translations, examples, audio_paths))
+                concept_id = cursor.lastrowid
+                logging.info(f"Концепт '{keyword_phrase}' создан с ID {concept_id}")
+
+                # 3. Генерируем и создаем Карточки
+                self._generate_cards_for_concept(cursor, concept_id, enriched_data)
+                
+                return concept_id
+
+        except sqlite3.Error as e:
+            logging.error(f"Ошибка при создании концепта и карточек: {e}")
+            return None
+
+
+    def _generate_cards_for_concept(self, cursor, concept_id, enriched_data):
+        """Вспомогательный метод для генерации карточек. Вызывается внутри транзакции."""
+        from datetime import datetime, timezone
+        from core.srs import INITIAL_DUE_DATE # Импортируем, чтобы избежать циклической зависимости
+
+        keyword = enriched_data['keyword_phrase']
+        translation = enriched_data.get('translation')
+        full_sentence = enriched_data.get('full_sentence', '') # Возьмем из enriched_data, если передадим
+
+        # Дата "сегодня" для новых карточек
+        due_date = INITIAL_DUE_DATE
+
+        cards_to_create = []
+
+        # Карточка 1: Прямая (Ключевая фраза -> Перевод)
+        if translation:
+            cards_to_create.append({
+                'concept_id': concept_id, 'card_type': 'forward',
+                'front': keyword, 'back': translation,
+                'due_date': due_date
+            })
+
+        # Карточка 2: Обратная (Перевод -> Ключевая фраза)
+        if translation:
+            cards_to_create.append({
+                'concept_id': concept_id, 'card_type': 'reverse',
+                'front': translation, 'back': keyword,
+                'due_date': due_date
+            })
+            
+        # Карточка 3: Заполнить пропуск
+        if full_sentence and keyword in full_sentence:
+            cloze_sentence = full_sentence.replace(keyword, "______")
+            cards_to_create.append({
+                'concept_id': concept_id, 'card_type': 'cloze',
+                'front': cloze_sentence, 'back': full_sentence,
+                'due_date': due_date
+            })
+
+        card_sql = """
+        INSERT INTO training_cards (concept_id, card_type, front, back, due_date, srs_level)
+        VALUES (:concept_id, :card_type, :front, :back, :due_date, 0)
+        """
+        cursor.executemany(card_sql, cards_to_create)
+        logging.info(f"Создано {len(cards_to_create)} карточек для концепта ID {concept_id}")
+
     def _get_connection(self):
         """
         Устанавливает соединение с базой данных.
