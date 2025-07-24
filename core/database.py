@@ -196,7 +196,8 @@ class DatabaseManager:
         create_decks_table_sql = """
         CREATE TABLE IF NOT EXISTS decks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE
+            name TEXT NOT NULL UNIQUE,
+            lang_code TEXT NOT NULL DEFAULT 'en'
         );
         """
         
@@ -236,10 +237,27 @@ class DatabaseManager:
                 cursor.execute(create_decks_table_sql)
                 cursor.execute(create_concepts_table_sql)
                 cursor.execute(create_cards_table_sql)
+                # --- НАЧАЛО ПРОЦЕССА МИГРАЦИИ ---
+                # Проверяем, нужно ли добавлять новую колонку в уже существующую таблицу.
+                # Это нужно для пользователей, у которых уже есть старая версия БД.
+                logging.info("Проверка необходимости миграции схемы (колонка lang_code)...")
+                cursor.execute("PRAGMA table_info(decks)")
+                columns = [column[1] for column in cursor.fetchall()]
+                
+                if 'lang_code' not in columns:
+                    logging.info("Колонка 'lang_code' отсутствует. Выполнение миграции...")
+                    # ALTER TABLE добавляет новую колонку в существующую таблицу
+                    # NOT NULL DEFAULT 'en' - важно для существующих записей
+                    cursor.execute("ALTER TABLE decks ADD COLUMN lang_code TEXT NOT NULL DEFAULT 'en'")
+                    logging.info("Миграция завершена: колонка 'lang_code' добавлена в таблицу decks.")
+                else:
+                    logging.info("Миграция не требуется, схема актуальна.")
+                # --- КОНЕЦ ПРОЦЕССА МИГРАЦИИ ---
+
                 conn.commit()
-                logging.info("Database schema initialized successfully.")
+                logging.info("Схема БД успешно инициализирована/обновлена.")
             except sqlite3.Error as e:
-                logging.error(f"Error creating tables: {e}")
+                logging.error(f"Ошибка при создании/миграции таблиц: {e}")
             finally:
                 conn.close()
 
@@ -271,7 +289,7 @@ class DatabaseManager:
         Возвращает список всех колод.
         Каждая колода - это словарь {'id': ..., 'name': ...}.
         """
-        sql = "SELECT id, name FROM decks ORDER BY name"
+        sql = "SELECT id, name, lang_code FROM decks ORDER BY name"
         conn = self._get_connection()
         if conn:
             try:
