@@ -20,9 +20,9 @@ TARGET_LANGUAGE = 'ru'
 AUDIO_DIR = Path("assets/audio")
 
 
-async def get_translation(text: str, to_language: str = TARGET_LANGUAGE) -> str | None:
+async def get_translation(text: str, from_language: str, to_language: str = 'ru') -> str | None:
     """Получает перевод текста с помощью библиотеки googletrans."""
-    logging.info(f"Получение перевода для: '{text}'")
+    logging.info(f"Получение перевода для: '{text}' с {from_language} на {to_language}")
     try:
         # googletrans - синхронная библиотека, ее нужно запускать в executor'е,
         # чтобы не блокировать асинхронный цикл.
@@ -31,7 +31,9 @@ async def get_translation(text: str, to_language: str = TARGET_LANGUAGE) -> str 
         def translate_sync():
             translator = Translator()
             # Указываем язык источника 'en' и язык назначения.
-            translation_result = translator.translate(text, src='en', dest=to_language)
+            translation_result = translator.translate(
+                text, src=from_language, dest=to_language
+            )
             return translation_result.text
 
         translated_text = await loop.run_in_executor(None, translate_sync)
@@ -120,16 +122,16 @@ async def generate_audio(text: str, lang: str, filename: str) -> str | None:
         return None
 
 
-async def enrich_phrase(phrase: str) -> dict:
+async def enrich_phrase(phrase: str, lang_code: str) -> dict:
     """
     Главная оркестрирующая функция. Запускает все процессы обогащения.
     """
-    logging.info(f"--- Начало процесса обогащения для фразы: '{phrase}' ---")
+    logging.info(f"--- Начало процесса обогащения для фразы: '{phrase}' (язык: {lang_code}) ---")
     # Создаем уникальное имя файла на основе хэша фразы, чтобы избежать конфликтов
     safe_filename = abs(hash(phrase))
     
     # Запускаем задачи перевода и поиска примеров параллельно
-    translation_task = asyncio.create_task(get_translation(phrase))
+    translation_task = asyncio.create_task(get_translation(phrase, from_language=lang_code))
     examples_task = asyncio.create_task(find_usage_examples(phrase))
 
     # Ждем завершения обеих задач
@@ -140,7 +142,7 @@ async def enrich_phrase(phrase: str) -> dict:
     audio_tasks = []
     # 1. Аудио для ключевой фразы
     audio_tasks.append(asyncio.create_task(
-        generate_audio(phrase, 'en', f"keyword_{safe_filename}")
+        generate_audio(phrase, lang_code, f"keyword_{safe_filename}")
     ))
     # 2. Аудио для перевода (если он есть)
     if translation:

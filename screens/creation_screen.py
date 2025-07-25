@@ -17,6 +17,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 class CreationScreen(MDScreen):
     deck_id = None # Будем передавать ID колоды при переходе на этот экран
+    lang_code = None
+    initial_text = None
     enriched_data = None # Здесь будем хранить обогащенные данные
     spinner = None
 
@@ -35,11 +37,16 @@ class CreationScreen(MDScreen):
         self.ids.results_box.clear_widgets()
         self.ids.save_button.disabled = True
         self.enriched_data = None
+
+        if self.initial_text:
+            self.ids.full_sentence_field.text = self.initial_text
+            self.initial_text = None # Очищаем после использования
         
         app = MDApp.get_running_app()
         current_screen = getattr(app.sm, 'current_screen', None)
         if current_screen:
             self.deck_id = getattr(current_screen, 'deck_id', None)
+            self.lang_code = getattr(current_screen, 'lang_code', 'en')
 
     def enrich_button_pressed(self):
         """Запускает процесс обогащения в отдельном потоке."""
@@ -59,11 +66,11 @@ class CreationScreen(MDScreen):
 
     def run_enrichment(self, keyword):
         """Выполняет асинхронную функцию обогащения."""
-        # Используем asyncio.run() - это более современный и простой способ
-        # запустить асинхронную функцию из синхронного кода.
-        # Он сам управляет созданием и закрытием цикла.
+        if not self.lang_code:
+            print("Ошибка: не указан язык колоды!")
+            return
         try:
-            self.enriched_data = asyncio.run(enrich_phrase(keyword))
+            self.enriched_data = asyncio.run(enrich_phrase(keyword, self.lang_code))
         except Exception as e:
             print(f"Ошибка в потоке обогащения: {e}")
             self.enriched_data = None

@@ -1,3 +1,4 @@
+from functools import partial
 from kivy.clock import Clock
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -170,22 +171,44 @@ class DeckListScreen(MDScreen):
         self.close_dialog()
         Clock.schedule_once(self.load_decks) # Обновляем список с небольшой задержкой
 
-    
-    # def go_to_creation_screen(self):
-    #     """Переходит на экран создания карточки."""
-    #     # Для простоты MVP, будем добавлять карточку в первую колоду.
-    #     # В будущем здесь будет диалог выбора колоды.
-    #     app = MDApp.get_running_app()
-    #     all_decks = app.db_manager.get_all_decks()
-    #     if not all_decks:
-    #         # Обработка случая, если нет колод
-    #         print("Сначала создайте колоду!")
-    #         return
+    def show_add_to_deck_menu(self, clipboard_text: str | None = None):
+        app = MDApp.get_running_app()
+        all_decks = app.db_manager.get_all_decks()
+        
+        if not all_decks:
+            self.show_create_deck_dialog()
+            return
+
+        # Создаем меню из существующих колод
+        menu_items = []
+        for deck in all_decks:
+            # Создаем частичную функцию, "замораживая" deck и clipboard_text
+            # Мы передаем сам метод go_to_creation_screen и его будущие аргументы
+            callback = partial(self.go_to_creation_screen, deck, clipboard_text)
             
-    #     first_deck_id = all_decks[0]['id']
+            menu_items.append({
+                "text": deck['name'],
+                "on_release": callback, # Передаем готовый callback
+            })
+
+        self.menu = MDDropdownMenu(
+            caller=self.ids.add_card_button, 
+            items=menu_items, 
+            width_mult=4
+        )
+        self.menu.open()
+
+    def go_to_creation_screen(self, deck_info: dict, initial_text: str | None = None):
+        """Переходит на экран создания карточки, передавая данные о колоде."""
+        if hasattr(self, 'menu') and self.menu:
+            self.menu.dismiss()
+            
+        app = MDApp.get_running_app()
         
-    #     # Устанавливаем deck_id в экран создания ДО перехода
-    #     creation_screen = app.sm.get_screen('creation_screen')
-    #     creation_screen.deck_id = first_deck_id
+        creation_screen = app.sm.get_screen('creation_screen')
+        creation_screen.deck_id = deck_info['id']
+        creation_screen.lang_code = deck_info['lang_code']
+        # Устанавливаем текст, который будет вставлен на экране создания
+        creation_screen.initial_text = initial_text
         
-    #     app.sm.current = 'creation_screen'
+        app.sm.current = 'creation_screen'

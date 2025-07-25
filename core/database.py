@@ -263,25 +263,25 @@ class DatabaseManager:
 
     # --- Методы для работы с Колодами (Decks) ---
 
-    def create_deck(self, name):
+    def create_deck(self, name: str, lang_code: str = 'en'):
         """
-        Создает новую колоду с заданным именем.
+        Создает новую колоду с заданным именем и языком.
         Возвращает ID новой колоды или None в случае ошибки.
         """
-        sql = "INSERT INTO decks (name) VALUES (?)"
+        sql = "INSERT INTO decks (name, lang_code) VALUES (?, ?)"
         conn = self._get_connection()
         if conn:
             try:
-                with conn: # `with conn:` автоматически управляет транзакцией
+                with conn:
                     cursor = conn.cursor()
-                    cursor.execute(sql, (name,))
-                    logging.info(f"Deck '{name}' created with id {cursor.lastrowid}.")
+                    cursor.execute(sql, (name, lang_code)) # Теперь передаем два значения
+                    logging.info(f"Колода '{name}' (язык: {lang_code}) создана с id {cursor.lastrowid}.")
                     return cursor.lastrowid
             except sqlite3.IntegrityError:
-                logging.warning(f"Deck '{name}' already exists.")
+                logging.warning(f"Колода '{name}' уже существует.")
                 return None
             except sqlite3.Error as e:
-                logging.error(f"Error creating deck: {e}")
+                logging.error(f"Ошибка при создании колоды: {e}")
                 return None
 
     def get_all_decks(self):

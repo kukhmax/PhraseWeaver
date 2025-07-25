@@ -2,18 +2,20 @@ import os
 from kivymd.app import MDApp
 from kivy.core.window import Window
 from kivy.lang import Builder
+from kivy.clock import Clock
+from kivy.metrics import dp
 from kivy.uix.screenmanager import ScreenManager
+from kivy.core.clipboard import Clipboard
+from kivymd.uix.snackbar import MDSnackbar, MDSnackbarSupportingText, MDSnackbarButtonContainer
+from kivymd.uix.button import MDButton, MDButtonText
 
 from core.database import DatabaseManager
 from screens.deck_list_screen import DeckListScreen
 from screens.creation_screen import CreationScreen
 from screens.training_screen import TrainingScreen
 
-# --- Конфигурация для удобства разработки на ПК ---
-# Мы устанавливаем фиксированный размер окна, имитирующий экран смартфона.
-# Это не повлияет на финальное приложение на Android (там оно будет на весь экран),
-# но для разработки на компьютере это очень удобно.
-Window.size = (400, 700)
+
+Window.size = (400, 700)  # Мы устанавливаем фиксированный размер окна, имитирующий экран смартфона.
 
 # Загружаем строку с KV разметкой. Это как HTML для веба.
 # Мы описываем здесь структуру виджетов.
@@ -32,10 +34,12 @@ ScreenManager:
             title: "PhraseWeaver"
             elevation: 4
             pos_hint: {"top": 1}
+            right_action_items: [["plus-box-outline", lambda x: root.show_create_deck_dialog()]]
         ScrollView:
             MDList:
                 id: deck_list
-    MDFabButton: # <--- ИСПРАВЛЕНО
+    MDFabButton:
+        id: add_card_button
         icon: "plus"
         pos_hint: {"right": 0.95, "bottom": 0.05}
         on_release: root.show_create_deck_dialog()
@@ -173,8 +177,35 @@ class PhraseWeaverApp(MDApp):
     Главный класс нашего приложения. Он наследуется от MDApp (Material Design App),
     что дает нам доступ ко всем виджетам и стилям KivyMD.
     """
-
+    sm = None  # Менеджер экранов, который будет переключать между экранами
     db_manager = None # Добавляем атрибут для хранения менеджера БД
+
+    def on_start(self):
+        Clock.schedule_once(self.check_clipboard, 1)
+        
+    def check_clipboard(self, *args):
+        clipboard_text = Clipboard.get().strip()
+        if not clipboard_text:
+            return
+        
+        MDSnackbar(
+            MDSnackbarSupportingText(text=f'Создать карточку из: "{clipboard_text[:30]}..."?'),
+            MDSnackbarButtonContainer(
+                MDButton(
+                    MDButtonText(text="СОЗДАТЬ"),
+                    style="text",
+                    on_release=lambda x: self.create_card_from_clipboard()
+                )
+            ),
+            y=dp(24),
+            pos_hint={"center_x": 0.5},
+            size_hint_x=0.5
+        ).open()
+
+    def create_card_from_clipboard(self):
+        text = Clipboard.get().strip()
+        deck_list_screen = self.sm.get_screen('deck_list')
+        deck_list_screen.show_add_to_deck_menu(clipboard_text=text)
 
     def build(self):
         self.theme_cls.primary_palette = "Indigo"
