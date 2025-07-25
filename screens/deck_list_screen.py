@@ -95,10 +95,13 @@ class DeckListScreen(MDScreen):
         self.menu = MDDropdownMenu(caller=content.language_button, items=menu_items, width_mult=4)
         content.language_button.on_release = self.menu.open
 
+        # --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
         self.dialog = MDDialog(
             title="Создать новую колоду",
             type="custom",
             content_cls=content,
+            # Добавляем это свойство, чтобы окно не закрывалось само по себе
+            auto_dismiss=False, 
             buttons=[
                 MDFlatButton(text="ОТМЕНА", on_release=self.close_dialog),
                 MDRaisedButton(text="СОЗДАТЬ", on_release=lambda x: self.create_deck_action(content)),

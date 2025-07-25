@@ -7,8 +7,8 @@ from kivy.metrics import dp
 from kivymd.app import MDApp
 from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.screen import MDScreen
-# ИСПРАВЛЕНО: Правильный путь для MDSpinner в KivyMD 1.2.0
 from kivymd.uix.spinner import MDSpinner
+# ИМПОРТИРУЕМ SNACKBAR, ОН НАМ ЗДЕСЬ НУЖЕН
 from kivymd.uix.snackbar import Snackbar
 
 from core.enrichment import enrich_phrase
@@ -86,31 +86,19 @@ class CreationScreen(MDScreen):
 
     @mainthread
     def show_spinner(self, show):
-        # ИСПРАВЛЕНО: Более надежная логика для спиннера
         button = self.ids.get('enrich_button')
-        if not button:
-            return
+        if not button: return
         container = button.parent
 
         if show:
-            # Прячем кнопку и создаем спиннер
             button.opacity = 0
             button.disabled = True
-            
             if not self.spinner:
-                self.spinner = MDSpinner(
-                    size_hint=(None, None), 
-                    size=(dp(46), dp(46)), 
-                    pos_hint={'center_x': 0.5}
-                )
-            
-            # Добавляем спиннер в тот же контейнер, где была кнопка
+                self.spinner = MDSpinner(size_hint=(None, None), size=(dp(46), dp(46)), pos_hint={'center_x': 0.5})
             container.add_widget(self.spinner, index=container.children.index(button) + 1)
         else:
-            # Показываем кнопку и убираем спиннер
             button.opacity = 1
             button.disabled = False
-            
             if self.spinner and self.spinner.parent:
                 self.spinner.parent.remove_widget(self.spinner)
     
@@ -130,13 +118,21 @@ class CreationScreen(MDScreen):
             enriched_data=self.enriched_data
         )
 
+        # --- ИСПРАВЛЕНИЕ ЗДЕСЬ: Используем "пуленепробиваемый" метод ---
+        snackbar_text = ""
         if result == "duplicate":
             logging.warning("Попытка сохранить дубликат.")
-            Snackbar(text="Эта фраза уже есть в колоде!").open()
+            snackbar_text = "Эта фраза уже есть в колоде!"
         elif result:
             logging.info(f"Концепт успешно сохранен с ID {result}.")
-            Snackbar(text="Карточка успешно сохранена!").open()
+            snackbar_text = "Карточка успешно сохранена!"
         else:
             logging.error("Не удалось сохранить концепт.")
+            snackbar_text = "Ошибка! Не удалось сохранить карточку."
+
+        # Создаем пустой Snackbar и задаем ему свойства пошагово
+        snackbar = Snackbar()
+        snackbar.text = snackbar_text
+        snackbar.open()
 
         self.manager.current = 'deck_list'

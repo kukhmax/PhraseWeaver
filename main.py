@@ -40,7 +40,7 @@ ScreenManager:
         id: add_card_button
         icon: "plus"
         pos_hint: {"right": 0.95, "bottom": 0.05}
-        on_release: root.show_add_to_deck_menu()
+        on_release: root.show_create_deck_dialog()
 
 <CreationScreen>:
     name: 'creation_screen'
