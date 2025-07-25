@@ -2,27 +2,26 @@ from functools import partial
 from kivy.clock import Clock
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDButton, MDButtonText
+# ИСПРАВЛЕНО: Импортируем конкретные кнопки
+from kivymd.uix.button import MDFlatButton, MDRaisedButton
+# ИСПРАВЛЕНО: Классический MDDialog
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.list import (
-    MDListItem,
-    MDListItemLeadingIcon,
-    MDListItemHeadlineText,
-    MDListItemSupportingText,
-    MDListItemTrailingIcon
-)
-from kivymd.uix.menu import MDDropdownMenu # ТОЛЬКО ЭТОТ ИМПОРТ ИЗ MENU
+# ИСПРАВЛЕНО: Классические элементы списка
+from kivymd.uix.list import OneLineAvatarIconListItem, IRightBodyTouch
+from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.dialog import (
-    MDDialog,
-    MDDialogHeadlineText,
-    MDDialogSupportingText, # Нам он не понадобится, но для информации
-    MDDialogButtonContainer,
-    MDDialogContentContainer,
-)
 
 from core.config import SUPPORTED_LANGUAGES
+
+
+# ИСПРАВЛЕНО: Вспомогательный класс для иконки, чтобы она была кликабельной
+class ListItemWithRightIcon(OneLineAvatarIconListItem):
+    pass
+
+class RightIconWidget(IRightBodyTouch, MDFlatButton):
+    pass
+
 
 class CreateDeckDialogContent(MDBoxLayout):
     def __init__(self, **kwargs):
@@ -31,134 +30,85 @@ class CreateDeckDialogContent(MDBoxLayout):
         self.spacing = "12dp"
         self.size_hint_y = None
         self.height = "120dp"
-        self.deck_name_field = MDTextField(hint_text="Название колоды", mode="filled")
+
+        self.deck_name_field = MDTextField(hint_text="Название колоды", mode="fill")
+        self.language_button = MDRaisedButton(text="Выберите язык")
         self.add_widget(self.deck_name_field)
-        self.language_button = MDButton(MDButtonText(text="Выберите язык"), style="outlined")
         self.add_widget(self.language_button)
         self.selected_lang_code = None
 
 
 class DeckListScreen(MDScreen):
-    """Экран для отображения списка колод."""
     dialog = None
 
     def on_enter(self, *args):
-        """
-        Метод вызывается, когда экран становится видимым.
-        Мы используем Clock.schedule_once, чтобы гарантировать,
-        что все 'ids' будут доступны к моменту вызова load_decks.
-        """
         Clock.schedule_once(self.load_decks, 0)
 
     def load_decks(self, dt=None):
-        """
-        Загружает колоды из БД и отображает их в виде списка.
-        """
-        # Получаем доступ к нашему менеджеру БД через инстанс приложения
-        app = MDApp.get_running_app()
-        if not app or not hasattr(app, 'db_manager'):
-            return
-        decks = app.db_manager.get_all_decks()
+        if not hasattr(self, 'db_manager'): return
+        decks = self.db_manager.get_all_decks()
 
-        # Находим виджет списка по его id (мы зададим его в KV строке)
-        deck_list_widget = self.ids.deck_list
-        deck_list_widget.clear_widgets() # Очищаем старый список перед обновлением
+        deck_list_widget = self.ids.deck_list_container
+        deck_list_widget.clear_widgets()
 
         if not decks:
-            item = MDListItem()
-            item.add_widget(MDListItemLeadingIcon(icon="plus-box-outline"))
-            item.add_widget(MDListItemHeadlineText(text="Колод пока нет. Создайте первую!"))
+            item = OneLineAvatarIconListItem(text="Колод пока нет. Создайте первую!")
             deck_list_widget.add_widget(item)
             return
 
         for deck in decks:
-            # Считаем карточки для этой колоды
-            review_count = app.db_manager.count_cards_for_review(deck['id'])
+            review_count = self.db_manager.count_cards_for_review(deck['id'])
             lang_name = SUPPORTED_LANGUAGES.get(deck['lang_code'], deck['lang_code'].upper())
 
-            item = MDListItem(
+            item = OneLineAvatarIconListItem(
+                text=f"{deck['name']} ({lang_name})",
+                secondary_text=f"К повторению: {review_count}",
                 on_release=lambda x, current_deck=deck: self.go_to_creation_screen(current_deck)
             )
-            item.add_widget(
-                MDListItemLeadingIcon(icon="cards-outline")
-            )
-            item.add_widget(
-                MDListItemHeadlineText(text=f"{deck['name']}")
-            )
-            item.add_widget(
-                MDListItemSupportingText(text=f"Язык: {lang_name} | К повторению: {review_count}")
-            )
-            trailing_icon = MDListItemTrailingIcon(
-                icon="play-circle-outline",  # Отличная иконка для "старта"
-                # При нажатии на иконку - переходим к ТРЕНИРОВКЕ.
+            # ИСПРАВЛЕНО: Добавляем правую иконку для тренировки
+            right_icon = RightIconWidget(
+                text="ТРЕНИРОВАТЬ",
                 on_press=lambda x, deck_id=deck['id']: self.go_to_training(deck_id)
             )
-            item.add_widget(trailing_icon)
-
-
+            item.add_widget(right_icon)
             deck_list_widget.add_widget(item)
 
     def go_to_training(self, deck_id):
-        """Переходит на экран тренировки для выбранной колоды."""
-        app = MDApp.get_running_app()
-        # Проверяем, есть ли что повторять
-        if app.db_manager.count_cards_for_review(deck_id) == 0:
-            print("В этой колоде нет карточек для повторения.")
-            # Можно показать Snackbar
+        if self.db_manager.count_cards_for_review(deck_id) == 0:
             return
             
-        training_screen = app.sm.get_screen('training_screen')
-        training_screen.deck_id = deck_id # Передаем ID колоды на экран тренировки
-        app.sm.current = 'training_screen'
+        training_screen = self.manager.get_screen('training_screen')
+        training_screen.deck_id = deck_id
+        self.manager.current = 'training_screen'
 
     def show_create_deck_dialog(self):
-        """Показывает диалог для создания новой колоды (API KivyMD 2.0)."""
-        if self.dialog:
-            return
+        if self.dialog: return
 
-        dialog_content = CreateDeckDialogContent()
+        content = CreateDeckDialogContent()
         
         menu_items = [{
             "text": lang_name,
-            "on_release": lambda x=lang_code, button=dialog_content.language_button: self.set_language(x, button),
+            "viewclass": "OneLineListItem",
+            "on_release": lambda x=lang_code, y=content: self.set_language(x, y),
         } for lang_code, lang_name in SUPPORTED_LANGUAGES.items()]
-        self.menu = MDDropdownMenu(caller=dialog_content.language_button, items=menu_items, width_mult=4)
-        dialog_content.language_button.on_release = self.menu.open
+        
+        self.menu = MDDropdownMenu(caller=content.language_button, items=menu_items, width_mult=4)
+        content.language_button.on_release = self.menu.open
 
-        # --- ИЗМЕНЕНИЕ ЗДЕСЬ: Собираем диалог по-новому ---
         self.dialog = MDDialog(
-            # 1. Добавляем заголовок
-            MDDialogHeadlineText(text="Создать новую колоду"),
-            # 2. Добавляем наш кастомный контент
-            MDDialogContentContainer(dialog_content),
-            # 3. Добавляем контейнер для кнопок
-            MDDialogButtonContainer(
-                # И в него сами кнопки
-                MDButton(
-                    MDButtonText(text="ОТМЕНА"),
-                    style="text", # Текстовый стиль для кнопок отмены
-                    on_release=self.close_dialog
-                ),
-                MDButton(
-                    MDButtonText(text="СОЗДАТЬ"),
-                    style="text",
-                    on_release=lambda x, content=dialog_content: self.create_deck_action(content)
-                ),
-                spacing="8dp",
-            ),
+            title="Создать новую колоду",
+            type="custom",
+            content_cls=content,
+            buttons=[
+                MDFlatButton(text="ОТМЕНА", on_release=self.close_dialog),
+                MDRaisedButton(text="СОЗДАТЬ", on_release=lambda x: self.create_deck_action(content)),
+            ],
         )
         self.dialog.open()
 
-    def set_language(self, lang_code, button):
-        """Обработчик выбора языка в меню."""
-        # Сохраняем выбранный код в самом объекте контента диалога
-        button.parent.selected_lang_code = lang_code
-        
-        # Обновляем текст на кнопке
-        for child in button.children:
-            if isinstance(child, MDButtonText):
-                child.text = SUPPORTED_LANGUAGES.get(lang_code)
-                break
+    def set_language(self, lang_code, content_cls):
+        content_cls.selected_lang_code = lang_code
+        content_cls.language_button.text = SUPPORTED_LANGUAGES.get(lang_code)
         self.menu.dismiss()
         
     def close_dialog(self, *args):
@@ -167,37 +117,28 @@ class DeckListScreen(MDScreen):
             self.dialog = None
 
     def create_deck_action(self, content):
-        """Действие по кнопке 'СОЗДАТЬ'."""
         deck_name = content.deck_name_field.text.strip()
         lang_code = content.selected_lang_code
         
-        if not deck_name or not lang_code:
-            content.deck_name_field.error_text = "Введите название" if not deck_name else ""
-            return
+        if not deck_name or not lang_code: return
 
-        app = MDApp.get_running_app()
-        app.db_manager.create_deck(deck_name, lang_code)
+        self.db_manager.create_deck(deck_name, lang_code)
         self.close_dialog()
-        Clock.schedule_once(self.load_decks) # Обновляем список с небольшой задержкой
+        self.load_decks()
 
-    def show_add_to_deck_menu(self, clipboard_text: str | None = None):
-        app = MDApp.get_running_app()
-        all_decks = app.db_manager.get_all_decks()
-        
+    def show_add_to_deck_menu(self, clipboard_text=None):
+        all_decks = self.db_manager.get_all_decks()
         if not all_decks:
             self.show_create_deck_dialog()
             return
 
-        # Создаем меню из существующих колод
         menu_items = []
         for deck in all_decks:
-            # Создаем частичную функцию, "замораживая" deck и clipboard_text
-            # Мы передаем сам метод go_to_creation_screen и его будущие аргументы
             callback = partial(self.go_to_creation_screen, deck, clipboard_text)
-            
             menu_items.append({
                 "text": deck['name'],
-                "on_release": callback, # Передаем готовый callback
+                "viewclass": "OneLineListItem",
+                "on_release": callback,
             })
 
         self.menu = MDDropdownMenu(
@@ -207,17 +148,12 @@ class DeckListScreen(MDScreen):
         )
         self.menu.open()
 
-    def go_to_creation_screen(self, deck_info: dict, initial_text: str | None = None):
-        """Переходит на экран создания карточки, передавая данные о колоде."""
-        if hasattr(self, 'menu') and self.menu:
-            self.menu.dismiss()
+    def go_to_creation_screen(self, deck_info, initial_text=None):
+        if hasattr(self, 'menu') and self.menu: self.menu.dismiss()
             
-        app = MDApp.get_running_app()
-        
-        creation_screen = app.sm.get_screen('creation_screen')
+        creation_screen = self.manager.get_screen('creation_screen')
         creation_screen.deck_id = deck_info['id']
         creation_screen.lang_code = deck_info['lang_code']
-        # Устанавливаем текст, который будет вставлен на экране создания
         creation_screen.initial_text = initial_text
         
-        app.sm.current = 'creation_screen'
+        self.manager.current = 'creation_screen'

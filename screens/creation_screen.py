@@ -1,34 +1,32 @@
 import asyncio
 from threading import Thread
 
-from kivy.clock import mainthread
-from kivy.clock import Clock
+from kivy.clock import mainthread, Clock
+from kivy.core.clipboard import Clipboard
+from kivy.metrics import dp
 from kivymd.app import MDApp
-from kivymd.uix.button import MDButton, MDButtonText # ИЗМЕНЕННЫЙ ИМПОРТ
+from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.progressindicator import MDCircularProgressIndicator
+# ИСПРАВЛЕНО: Правильный путь для MDSpinner в KivyMD 1.2.0
+from kivymd.uix.spinner import MDSpinner
+from kivymd.uix.snackbar import Snackbar
 
 from core.enrichment import enrich_phrase
-
 import logging
 
-# Настраиваем логирование, чтобы видеть, что происходит внутри модуля
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class CreationScreen(MDScreen):
-    deck_id = None # Будем передавать ID колоды при переходе на этот экран
+    deck_id = None
     lang_code = None
     initial_text = None
-    enriched_data = None # Здесь будем хранить обогащенные данные
+    enriched_data = None
     spinner = None
-
+    
     def on_enter(self, *args):
-        """Планируем очистку экрана."""
         Clock.schedule_once(self.setup_screen, 0)
     
-    # Создаем новый метод, который будет вызываться Clock
     def setup_screen(self, dt=None):
-        """Очищаем состояние экрана при входе."""
         if self.spinner:
             self.show_spinner(False)
 
@@ -40,112 +38,89 @@ class CreationScreen(MDScreen):
 
         if self.initial_text:
             self.ids.full_sentence_field.text = self.initial_text
-            self.initial_text = None # Очищаем после использования
-        
-        app = MDApp.get_running_app()
-        current_screen = getattr(app.sm, 'current_screen', None)
-        if current_screen:
-            self.deck_id = getattr(current_screen, 'deck_id', None)
-            self.lang_code = getattr(current_screen, 'lang_code', 'en')
+            self.initial_text = None
+
+    def paste_from_clipboard(self, *args):
+        pasted_text = Clipboard.get()
+        if pasted_text:
+            self.ids.full_sentence_field.text = pasted_text
 
     def enrich_button_pressed(self):
-        """Запускает процесс обогащения в отдельном потоке."""
         keyword = self.ids.keyword_field.text.strip()
         if not keyword:
-            # Можно добавить всплывающее уведомление
-            print("Ключевая фраза не может быть пустой!")
             return
 
-        # Показываем спиннер и блокируем кнопку
         self.show_spinner(True)
-        
-        # Запускаем тяжелую сетевую операцию в отдельном потоке,
-        # чтобы не блокировать UI
         thread = Thread(target=self.run_enrichment, args=(keyword,))
         thread.start()
 
     def run_enrichment(self, keyword):
-        """Выполняет асинхронную функцию обогащения."""
         if not self.lang_code:
-            print("Ошибка: не указан язык колоды!")
+            logging.error("Ошибка: не указан язык колоды!")
             return
         try:
             self.enriched_data = asyncio.run(enrich_phrase(keyword, self.lang_code))
         except Exception as e:
-            print(f"Ошибка в потоке обогащения: {e}")
+            logging.error(f"Ошибка в потоке обогащения: {e}")
             self.enriched_data = None
         
-        # Когда `asyncio.run` завершится, все асинхронные операции
-        # (включая генерацию аудио) уже будут выполнены.
-        # Теперь безопасно обновлять UI.
         self.update_ui_with_results()
 
     @mainthread
     def update_ui_with_results(self):
-        """Обновляет UI с полученными данными (безопасно для потоков)."""
         self.show_spinner(False)
         self.ids.results_box.clear_widgets()
 
         if not self.enriched_data:
-            # Обработка случая, если ничего не нашлось
             return
 
-        # ИЗМЕНЕНО: Создаем кнопки по-новому
         translation_text = f"Перевод: {self.enriched_data.get('translation', 'Не найден')}"
-        results_label = MDButton(
-            MDButtonText(text=translation_text),
-            style="tonal",
-        )
+        results_label = MDRaisedButton(text=translation_text)
         self.ids.results_box.add_widget(results_label)
         
         for example in self.enriched_data.get('examples', []):
-            example_label = MDButton(
-                MDButtonText(text=example),
-                style="outlined"
-            )
+            example_label = MDRaisedButton(text=example)
             self.ids.results_box.add_widget(example_label)
             
         self.ids.save_button.disabled = False
 
     @mainthread
     def show_spinner(self, show):
-        """Показывает или прячет спиннер загрузки (ИСПРАВЛЕНО)."""
-        container = self.ids.get('enrich_button_container')
-        if not container: return
+        # ИСПРАВЛЕНО: Более надежная логика для спиннера
+        button = self.ids.get('enrich_button')
+        if not button:
+            return
+        container = button.parent
 
         if show:
-            # Если спиннер уже существует (на всякий случай), сначала удалим его
-            if self.spinner and self.spinner.parent:
-                self.spinner.parent.remove_widget(self.spinner)
+            # Прячем кнопку и создаем спиннер
+            button.opacity = 0
+            button.disabled = True
             
-            self.ids.enrich_button.opacity = 0
-            self.ids.enrich_button.disabled = True
+            if not self.spinner:
+                self.spinner = MDSpinner(
+                    size_hint=(None, None), 
+                    size=(dp(46), dp(46)), 
+                    pos_hint={'center_x': 0.5}
+                )
             
-            # Создаем новый спиннер и сохраняем ссылку на него
-            self.spinner = MDCircularProgressIndicator()
-            container.add_widget(self.spinner)
+            # Добавляем спиннер в тот же контейнер, где была кнопка
+            container.add_widget(self.spinner, index=container.children.index(button) + 1)
         else:
-            self.ids.enrich_button.opacity = 1
-            self.ids.enrich_button.disabled = False
+            # Показываем кнопку и убираем спиннер
+            button.opacity = 1
+            button.disabled = False
             
-            # Если ссылка на спиннер существует и у него есть родитель, удаляем
             if self.spinner and self.spinner.parent:
                 self.spinner.parent.remove_widget(self.spinner)
-            
-            self.spinner = None # Сбрасываем ссылку
     
-    # ... (в классе CreationScreen)
-
     def save_concept(self):
-        """Сохраняет новый концепт и карточки в базу данных."""
         if not self.enriched_data or not self.deck_id:
             return
 
-        app = MDApp.get_running_app()
-        db_manager = app.db_manager
+        db_manager = self.db_manager
         
         full_sentence = self.ids.full_sentence_field.text.strip()
-        # Добавляем полное предложение в enriched_data для удобства
         self.enriched_data['full_sentence'] = full_sentence
         
         logging.info("Сохранение концепта в БД...")
@@ -156,13 +131,12 @@ class CreationScreen(MDScreen):
         )
 
         if result == "duplicate":
-            # Здесь можно показать пользователю красивое уведомление (Snackbar)
             logging.warning("Попытка сохранить дубликат.")
-            # Например: MDApp.get_running_app().show_toast("Эта фраза уже есть!")
+            Snackbar(text="Эта фраза уже есть в колоде!").open()
         elif result:
             logging.info(f"Концепт успешно сохранен с ID {result}.")
+            Snackbar(text="Карточка успешно сохранена!").open()
         else:
             logging.error("Не удалось сохранить концепт.")
 
-        # После сохранения возвращаемся на экран колод
-        app.sm.current = 'deck_list'
+        self.manager.current = 'deck_list'

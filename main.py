@@ -1,4 +1,5 @@
 import os
+import kivymd
 from kivymd.app import MDApp
 from kivy.core.window import Window
 from kivy.lang import Builder
@@ -6,8 +7,8 @@ from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.screenmanager import ScreenManager
 from kivy.core.clipboard import Clipboard
-from kivymd.uix.snackbar import MDSnackbar, MDSnackbarSupportingText, MDSnackbarButtonContainer
-from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.snackbar import Snackbar
+from kivymd.uix.button import MDFlatButton
 
 from core.database import DatabaseManager
 from screens.deck_list_screen import DeckListScreen
@@ -15,13 +16,10 @@ from screens.creation_screen import CreationScreen
 from screens.training_screen import TrainingScreen
 
 
-Window.size = (400, 700)  # Мы устанавливаем фиксированный размер окна, имитирующий экран смартфона.
+Window.size = (400, 700)
 
-# Загружаем строку с KV разметкой. Это как HTML для веба.
-# Мы описываем здесь структуру виджетов.
 KV = """
 ScreenManager:
-    # id: screen_manager
     DeckListScreen:
     CreationScreen:
     TrainingScreen:
@@ -37,113 +35,98 @@ ScreenManager:
             right_action_items: [["plus-box-outline", lambda x: root.show_create_deck_dialog()]]
         ScrollView:
             MDList:
-                id: deck_list
-    MDFabButton:
+                id: deck_list_container
+    MDFloatingActionButton:
         id: add_card_button
         icon: "plus"
         pos_hint: {"right": 0.95, "bottom": 0.05}
-        on_release: root.show_create_deck_dialog()
+        on_release: root.show_add_to_deck_menu()
+
 <CreationScreen>:
     name: 'creation_screen'
     MDBoxLayout:
         orientation: 'vertical'
-        spacing: "12dp"
-        padding: "12dp"
-
         MDTopAppBar:
             title: "Создать карточку"
-            pos_hint: {"top": 1}
-            left_action_items: [["arrow-left", lambda x: app.sm.switch_to(app.sm.get_screen('deck_list'), direction='right')]]
-
-        MDTextField:
-            id: full_sentence_field
-            hint_text: "Полное предложение (контекст)"
-            helper_text: "Пример: It turned out to be a blessing in disguise."
-            helper_text_mode: "on_focus"
-            mode: "filled"
-
-        MDTextField:
-            id: keyword_field
-            hint_text: "Ключевая фраза"
-            helper_text: "Пример: a blessing in disguise"
-            helper_text_mode: "on_focus"
-            mode: "filled"
-
-        MDBoxLayout:
-            id: enrich_button_container
-            adaptive_height: True
-            pos_hint: {"center_x": 0.5}
-            MDButton:
-                id: enrich_button
-                style: "filled" # 'filled' это аналог 'raised'
-                on_release: root.enrich_button_pressed()
-                MDButtonText:
-                    text: "Обогатить ✨"
-        
+            left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
         ScrollView:
             MDBoxLayout:
-                id: results_box
                 orientation: 'vertical'
                 adaptive_height: True
-                spacing: "8dp"
-                padding: "8dp"
+                spacing: "12dp"
+                padding: "24dp"
+                MDBoxLayout:
+                    orientation: 'horizontal'
+                    adaptive_height: True
+                    spacing: "8dp"
+                    MDTextField:
+                        id: full_sentence_field
+                        hint_text: "Полное предложение (контекст)"
+                        mode: "fill"
+                        size_hint_x: 0.9
+                    MDIconButton:
+                        icon: "clipboard-arrow-down-outline"
+                        on_release: root.paste_from_clipboard()
+                        pos_hint: {"center_y": 0.5}
+                MDTextField:
+                    id: keyword_field
+                    hint_text: "Ключевая фраза"
+                    mode: "fill"
+                MDRaisedButton:
+                    id: enrich_button
+                    text: "Обогатить ✨"
+                    on_release: root.enrich_button_pressed()
+                    pos_hint: {"center_x": 0.5}
+                MDBoxLayout:
+                    id: results_box
+                    orientation: 'vertical'
+                    adaptive_height: True
+                    spacing: "8dp"
+                Widget:
+                    size_hint_y: None
+                    height: dp(24)
+                MDRaisedButton:
+                    id: save_button
+                    text: "Сохранить в колоду"
+                    disabled: True
+                    on_release: root.save_concept()
+                    pos_hint: {"center_x": 0.5}
 
-        MDButton:
-            id: save_button
-            style: "filled" # или 'tonal'
-            disabled: True
-            on_release: root.save_concept()
-            pos_hint: {"center_x": 0.5}
-            MDButtonText:
-                text: "Сохранить в колоду"
 <TrainingScreen>:
     name: 'training_screen'
     MDBoxLayout:
         orientation: 'vertical'
-        
         MDTopAppBar:
             title: "Тренировка"
             pos_hint: {"top": 1}
-            left_action_items: [["arrow-left", lambda x: app.sm.switch_to(app.sm.get_screen('deck_list'), direction='right')]]
-
-        MDLinearProgressIndicator:
+            left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
+        MDProgressBar:
             id: progress_bar
             value: 0
-
         MDBoxLayout:
             orientation: 'vertical'
             padding: "24dp"
             spacing: "24dp"
-            
             MDCard:
-                style: "filled"
                 padding: "16dp"
                 MDLabel:
                     id: front_card_label
                     text: "Загрузка карточки..."
                     halign: "center"
-                    # ИСПРАВЛЕНО: два свойства вместо одного
-                    font_style: "Title" 
-                    role: "large"
-
+                    theme_text_color: "Primary"
+                    font_style: "H5"
             MDCard:
-                style: "outlined"
                 padding: "16dp"
                 MDLabel:
                     id: back_card_label
                     text: ""
                     halign: "center"
-                    # ИСПРАВЛЕНО: два свойства вместо одного
-                    font_style: "Headline"
-                    role: "small"
-                    
-            MDButton:
-                style: "filled"
+                    theme_text_color: "Secondary"
+                    font_style: "H6"
+            MDRaisedButton:
+                text: "Показать ответ"
                 pos_hint: {"center_x": 0.5}
                 on_release: root.show_answer()
-                MDButtonText:
-                    text: "Показать ответ"
-        
         MDBoxLayout:
             id: answer_buttons
             orientation: 'horizontal'
@@ -153,32 +136,21 @@ ScreenManager:
             pos_hint: {"center_x": 0.5}
             opacity: 0 
             disabled: True
-
-            MDButton:
-                style: "tonal"
+            MDRaisedButton:
+                text: "Снова"
                 on_release: root.evaluate_answer("again")
-                MDButtonText:
-                    text: "Снова"
-            MDButton:
-                style: "tonal"
+            MDRaisedButton:
+                text: "Хорошо"
                 on_release: root.evaluate_answer("good")
-                MDButtonText:
-                    text: "Хорошо"
-            MDButton:
-                style: "tonal"
+            MDRaisedButton:
+                text: "Легко"
                 on_release: root.evaluate_answer("easy")
-                MDButtonText:
-                    text: "Легко"
 """
 
 
 class PhraseWeaverApp(MDApp):
-    """
-    Главный класс нашего приложения. Он наследуется от MDApp (Material Design App),
-    что дает нам доступ ко всем виджетам и стилям KivyMD.
-    """
-    sm = None  # Менеджер экранов, который будет переключать между экранами
-    db_manager = None # Добавляем атрибут для хранения менеджера БД
+    sm = None
+    db_manager = None
 
     def on_start(self):
         Clock.schedule_once(self.check_clipboard, 1)
@@ -188,58 +160,67 @@ class PhraseWeaverApp(MDApp):
         if not clipboard_text:
             return
         
-        MDSnackbar(
-            MDSnackbarSupportingText(text=f'Создать карточку из: "{clipboard_text[:30]}..."?'),
-            MDSnackbarButtonContainer(
-                MDButton(
-                    MDButtonText(text="СОЗДАТЬ"),
-                    style="text",
-                    on_release=lambda x: self.create_card_from_clipboard()
-                )
-            ),
-            y=dp(24),
-            pos_hint={"center_x": 0.5},
-            size_hint_x=0.5
-        ).open()
+        # --- ФИНАЛЬНОЕ ИЗМЕНЕНИЕ: Самый надежный способ ---
+
+        # 1. Создаем АБСОЛЮТНО ПУСТОЙ Snackbar
+        snackbar = Snackbar()
+        
+        # 2. Устанавливаем его свойства ПОСЛЕ создания
+        snackbar.text = f'Создать карточку из: "{clipboard_text[:30]}..."?'
+        
+        # 3. Создаем кнопку
+        snackbar_button = MDFlatButton(
+            text="СОЗДАТЬ",
+            theme_text_color="Custom",
+            text_color=self.theme_cls.primary_color,
+            on_release=lambda x: self.create_card_from_clipboard()
+        )
+        
+        # 4. Добавляем кнопку к Snackbar
+        snackbar.buttons = [snackbar_button]
+        
+        # 5. Открываем
+        snackbar.open()
+
 
     def create_card_from_clipboard(self):
         text = Clipboard.get().strip()
         deck_list_screen = self.sm.get_screen('deck_list')
-        deck_list_screen.show_add_to_deck_menu(clipboard_text=text)
+        # ИСПРАВЛЕНО: добавил передачу None, чтобы соответствовать определению метода
+        deck_list_screen.show_add_to_deck_menu(clipboard_text=text) 
+
 
     def build(self):
+        print(f"KIVYMD VERSION: {kivymd.__version__}")
         self.theme_cls.primary_palette = "Indigo"
-        self.theme_cls.theme_style = "Light"
+        self.theme_cls.theme_style = "Light" 
 
         self.db_manager = DatabaseManager()
         self.sm = Builder.load_string(KV)
         
+        for screen_name in self.sm.screen_names:
+            screen = self.sm.get_screen(screen_name)
+            if not hasattr(screen, 'manager'):
+                screen.manager = self.sm
+            if not hasattr(screen, 'db_manager'):
+                screen.db_manager = self.db_manager
+            if not hasattr(screen, 'app'):
+                screen.app = self
+
         if not self.db_manager.get_all_decks():
             self.db_manager.create_deck("General")
 
         return self.sm
 
     def on_stop(self):
-        """
-        Этот метод Kivy вызывает, когда приложение закрывается.
-        Идеальное место, чтобы закрыть соединение с БД.
-        """
         if self.db_manager:
             self.db_manager.close()
 
 def setup_environment():
-    """
-    Функция для подготовки окружения перед запуском приложения.
-    Например, создание необходимых папок.
-    """
-    # ТЗ требует, чтобы аудиофайлы хранились в `assets/audio`.
-    # Этот код проверяет, существует ли эта папка, и создает ее, если нет.
-    # Это предотвратит ошибки, если приложение попытается сохранить файл в несуществующую директорию.
     if not os.path.exists('assets/audio'):
         os.makedirs('assets/audio')
 
 
 if __name__ == '__main__':
-
     setup_environment()
     PhraseWeaverApp().run()
