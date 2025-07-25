@@ -72,7 +72,7 @@ class DeckListScreen(MDScreen):
             lang_name = SUPPORTED_LANGUAGES.get(deck['lang_code'], deck['lang_code'].upper())
 
             item = MDListItem(
-                on_release=lambda x, deck_id=deck['id']: self.go_to_training(deck_id)
+                on_release=lambda x, current_deck=deck: self.go_to_creation_screen(current_deck)
             )
             item.add_widget(
                 MDListItemLeadingIcon(icon="cards-outline")
@@ -85,9 +85,6 @@ class DeckListScreen(MDScreen):
             )
             deck_list_widget.add_widget(item)
 
-    # def on_deck_press(self, deck_id):
-    #     """ Обработчик нажатия на колоду."""
-    #     print(f"Нажата колода с ID: {deck_id}. Переход пока не реализован.")
 
     def go_to_training(self, deck_id):
         """Переходит на экран тренировки для выбранной колоды."""
