@@ -4,7 +4,13 @@ from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDButton, MDButtonText
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.list import MDListItem, MDListItemLeadingIcon, MDListItemHeadlineText, MDListItemSupportingText
+from kivymd.uix.list import (
+    MDListItem,
+    MDListItemLeadingIcon,
+    MDListItemHeadlineText,
+    MDListItemSupportingText,
+    MDListItemTrailingIcon
+)
 from kivymd.uix.menu import MDDropdownMenu # ТОЛЬКО ЭТОТ ИМПОРТ ИЗ MENU
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.textfield import MDTextField
@@ -44,7 +50,6 @@ class DeckListScreen(MDScreen):
         """
         Clock.schedule_once(self.load_decks, 0)
 
-
     def load_decks(self, dt=None):
         """
         Загружает колоды из БД и отображает их в виде списка.
@@ -83,8 +88,15 @@ class DeckListScreen(MDScreen):
             item.add_widget(
                 MDListItemSupportingText(text=f"Язык: {lang_name} | К повторению: {review_count}")
             )
-            deck_list_widget.add_widget(item)
+            trailing_icon = MDListItemTrailingIcon(
+                icon="play-circle-outline",  # Отличная иконка для "старта"
+                # При нажатии на иконку - переходим к ТРЕНИРОВКЕ.
+                on_press=lambda x, deck_id=deck['id']: self.go_to_training(deck_id)
+            )
+            item.add_widget(trailing_icon)
 
+
+            deck_list_widget.add_widget(item)
 
     def go_to_training(self, deck_id):
         """Переходит на экран тренировки для выбранной колоды."""
