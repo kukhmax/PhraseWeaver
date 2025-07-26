@@ -208,7 +208,7 @@ class PhraseWeaverApp(MDApp):
                 screen.app = self
 
         if not self.db_manager.get_all_decks():
-            self.db_manager.create_deck("General")
+            self.db_manager.create_deck("General", "en")
 
         return self.sm
 
