@@ -126,6 +126,7 @@ ScreenManager:
                     theme_text_color: "Secondary"
                     font_style: "H6"
             MDRaisedButton:
+            
                 text: "Показать ответ"
                 pos_hint: {"center_x": 0.5}
                 on_release: root.show_answer()
@@ -190,7 +191,7 @@ ScreenManager:
             MDRaisedButton:
                 text: "Добавить выбранное"
                 pos_hint: {"center_x": 0.5}
-                # on_release: root.save_curated_phrases() # Эту логику мы добавим позже
+                on_release: root.save_curated_items()
 """
 
 
@@ -257,10 +258,6 @@ class PhraseWeaverApp(MDApp):
             self.db_manager.create_deck("General", "en")
 
         return self.sm
-
-    def on_stop(self):
-        if self.db_manager:
-            self.db_manager.close()
 
 def setup_environment():
     if not os.path.exists('assets/audio'):

@@ -152,11 +152,17 @@ class DeckListScreen(MDScreen):
         self.menu.open()
 
     def go_to_creation_screen(self, deck_info, initial_text=None):
+        """Переходит на экран создания карточки, СОХРАНЯЯ данные о колоде в manager."""
         if hasattr(self, 'menu') and self.menu: self.menu.dismiss()
             
         creation_screen = self.manager.get_screen('creation_screen')
-        creation_screen.deck_id = deck_info['id']
-        creation_screen.lang_code = deck_info['lang_code']
+        
+        # --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+        # Сохраняем данные о колоде в ScreenManager, чтобы они были доступны всем
+        self.manager.current_deck_id = deck_info['id']
+        self.manager.current_lang_code = deck_info['lang_code']
+        
+        # Передаем стартовый текст, если он есть (например, из буфера обмена)
         creation_screen.initial_text = initial_text
         
         self.manager.current = 'creation_screen'
