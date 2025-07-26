@@ -1,13 +1,17 @@
+# Файл: screens/curation_screen.py
+
+import asyncio
+from threading import Thread
 from kivy.clock import mainthread
 from kivymd.app import MDApp
 from kivymd.uix.list import TwoLineAvatarIconListItem, IconRightWidget
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.snackbar import Snackbar
-
+from core.enrichment import generate_audio
 
 class CurationScreen(MDScreen):
     deck_id = None
-    full_sentence = None
+    lang_code = None
     enriched_data = None
     
     def on_pre_enter(self, *args):
@@ -15,73 +19,78 @@ class CurationScreen(MDScreen):
         
     def populate_screen(self):
         self.ids.examples_list.clear_widgets()
-        
         if not self.enriched_data: return
             
         image_path = self.enriched_data.get('image_path')
-        self.ids.image_preview.source = image_path if image_path else 'assets/images/placeholder.png'
+        self.ids.image_preview.source = image_path if image_path else 'assets/placeholder.png'
         self.ids.image_preview.reload()
 
-        for example in self.enriched_data.get('examples', []):
-            original = example.get('original', '')
-            translation = example.get('translation', 'Перевод не найден')
-            
-            item = TwoLineAvatarIconListItem(
-                text=original,
-                secondary_text=translation
-            )
-            item._original_phrase = original
-            item._translation = translation
-            
-            delete_icon = IconRightWidget(
-                icon="delete-outline",
-                on_release=lambda x, list_item=item: self.delete_example(list_item)
-            )
-            item.add_widget(delete_icon)
+        for ex in self.enriched_data.get('examples', []):
+            item = TwoLineAvatarIconListItem(text=ex.get('original',''), secondary_text=ex.get('translation',''))
+            item._original_phrase = ex.get('original','')
+            item._translation = ex.get('translation','')
+            item.add_widget(IconRightWidget(icon="delete-outline", on_release=lambda x, i=item: self.delete_example(i)))
             self.ids.examples_list.add_widget(item)
 
     def delete_example(self, list_item):
         self.ids.examples_list.remove_widget(list_item)
-
+    
     def save_curated_items(self):
-        app = MDApp.get_running_app()
-        db_manager = app.db_manager
-        
-        shared_image_path = self.ids.image_preview.source
-        if shared_image_path == 'assets/images/placeholder.png':
-            shared_image_path = None
-
-        items_to_save = self.ids.examples_list.children
-        
-        if not items_to_save:
-            snackbar = Snackbar(text="Нет примеров для сохранения!")
+        items = self.ids.examples_list.children
+        if not items:
+            # --- ИСПРАВЛЕНИЕ 1: Безопасный Snackbar ---
+            snackbar = Snackbar()
+            snackbar.text = "Нет примеров для сохранения!"
             snackbar.open()
             return
 
-        saved_count = 0
-        for item in reversed(items_to_save):
-            original_phrase = item._original_phrase
-            translation = item._translation
-            
-            item_data = {
-                'keyword': original_phrase,
-                'translation': translation,
-                'image_path': shared_image_path,
-                'audio_path': None
-            }
-            
-            result = db_manager.create_concept_and_cards(
-                deck_id=self.deck_id,
-                full_sentence=original_phrase,
-                enriched_data=item_data
-            )
-            if result and result != "duplicate":
-                saved_count += 1
-
-        # --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
-        # Применяем наш "пуленепробиваемый" метод
+        # --- ИСПРАВЛЕНИЕ 2: Безопасный Snackbar ---
         snackbar = Snackbar()
-        snackbar.text = f"Успешно добавлено {saved_count} новых карточек!"
+        snackbar.text = "Сохранение... Это может занять несколько секунд."
         snackbar.open()
         
+        save_data = [{'original': i._original_phrase, 'translation': i._translation} for i in reversed(items)]
+        image_path = self.ids.image_preview.source if self.ids.image_preview.source != 'assets/placeholder.png' else None
+        self.lang_code = self.manager.current_lang_code
+        
+        thread = Thread(target=self._blocking_save, args=(save_data, image_path))
+        thread.start()
+
+    def _blocking_save(self, phrases_data, image_path):
+        count = asyncio.run(self._async_save_items(phrases_data, image_path))
+        self.on_saving_complete(count)
+        
+    async def _async_save_items(self, phrases_data, image_path):
+        db_manager = MDApp.get_running_app().db_manager
+        tasks = [self.process_and_save_item(p, image_path, db_manager) for p in phrases_data]
+        results = await asyncio.gather(*tasks)
+        return sum(1 for r in results if r)
+        
+    async def process_and_save_item(self, phrase_info, image_path, db_manager):
+        original = phrase_info['original']
+        translation = phrase_info['translation']
+        audio_path = await generate_audio(original, self.lang_code, "example")
+        
+        item_data = {
+            'keyword': original, 'translation': translation,
+            'image_path': image_path, 'audio_path': audio_path
+        }
+        
+        # Запускаем сохранение в БД в отдельном потоке, чтобы не блокировать asyncio
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None, 
+            db_manager.create_concept_and_cards,
+            self.deck_id, 
+            original, 
+            item_data
+        )
+        return result and result != "duplicate"
+
+    @mainthread
+    def on_saving_complete(self, count):
+        # --- ИСПРАВЛЕНИЕ 3: Безопасный Snackbar ---
+        snackbar = Snackbar()
+        snackbar.text = f"Успешно добавлено {count} новых карточек!"
+        snackbar.open()
         self.manager.current = 'deck_list'

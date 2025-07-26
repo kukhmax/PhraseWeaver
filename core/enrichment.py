@@ -1,12 +1,9 @@
-# Файл: core/enrichment.py
-
 import asyncio
 import logging
 import os
 import hashlib
 from pathlib import Path
 import aiohttp
-# --- ИЗМЕНЕНИЕ: Импортируем наш новый AI-генератор ---
 from core.ai_generator import generate_examples_with_ai
 from duckduckgo_search import AsyncDDGS
 from gtts import gTTS
@@ -23,18 +20,18 @@ def ensure_dir_exists(*dirs):
 
 ensure_dir_exists(AUDIO_DIR, IMAGE_DIR)
 
-# ... (функции get_translation, find_image_for_keyword, generate_audio остаются БЕЗ ИЗМЕНЕНИЙ) ...
-# (здесь должен быть твой код для этих трех функций, я его опускаю для краткости)
-# Я скопирую их из предыдущего ответа для полноты картины
-
+# --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
 async def get_translation(text: str, from_lang: str, to_lang: str = 'ru') -> str | None:
+    """Получает перевод текста с полными именами аргументов."""
     logging.info(f"Перевод: '{text}' с {from_lang} на {to_lang}")
     try:
-        loop = asyncio.get_running_loop()
         def translate_sync():
             translator = Translator()
+            # Используем новые, правильные имена
             translation_result = translator.translate(text, src=from_lang, dest=to_lang)
             return translation_result.text
+        
+        loop = asyncio.get_running_loop()
         translated_text = await loop.run_in_executor(None, translate_sync)
         logging.info(f"Перевод получен: '{translated_text}'")
         return translated_text
@@ -47,23 +44,19 @@ async def find_image_for_keyword(keyword: str) -> str | None:
     try:
         async with AsyncDDGS() as ddgs:
             results = await ddgs.images(keyword, max_results=1)
-            if not results:
-                logging.warning("Картинки не найдены.")
-                return None
+            if not results or not results[0].get('image'): return None
             
-            image_url = results[0].get('image')
-            if not image_url: return None
-
+            image_url = results[0]['image']
             logging.info(f"Найдена картинка: {image_url}")
+            
             file_hash = hashlib.md5(keyword.encode()).hexdigest()
-            extension = os.path.splitext(image_url.split('?')[0])[-1] or '.jpg'
+            extension = Path(image_url.split('?')[0]).suffix or '.jpg'
             image_path = IMAGE_DIR / f"{file_hash}{extension}"
 
             async with aiohttp.ClientSession() as session:
                 async with session.get(image_url) as response:
                     if response.status == 200:
-                        with open(image_path, 'wb') as f:
-                            f.write(await response.read())
+                        with open(image_path, 'wb') as f: f.write(await response.read())
                         logging.info(f"Картинка сохранена: {image_path}")
                         return str(image_path)
     except Exception as e:
@@ -90,34 +83,30 @@ async def generate_audio(text: str, lang: str, filename_prefix: str) -> str | No
         logging.error(f"Ошибка генерации аудио: {e}")
         return None
 
-# --- ИЗМЕНЕНИЕ В ГЛАВНОЙ ФУНКЦИИ ---
 async def enrich_phrase(keyword: str, lang_code: str, target_lang: str = 'ru') -> dict | None:
-    logging.info(f"--- НАЧАЛО ОБОГАЩЕНИЯ (AI) для '{keyword}' [{lang_code}] ---")
-    try:
-        # Нам нужен полный язык для промпта, например 'english', 'portuguese'
-        lang_map = {'en': 'english', 'ru': 'russian', 'es': 'spanish', 'pt': 'portuguese'}
-        full_language_name = lang_map.get(lang_code, lang_code)
-
-        gathered_results = await asyncio.gather(
-            get_translation(keyword, from_lang=lang_code, to_lang=target_lang),
-            find_image_for_keyword(keyword),
-            # --- ЗАМЕНА ЗДЕСЬ ---
-            generate_examples_with_ai(keyword, full_language_name),
-            generate_audio(keyword, lang_code, "keyword")
-        )
-    except Exception as e:
-        logging.error(f"Критическая ошибка во время asyncio.gather: {e}")
-        return None
-
-    translation, image_path, examples, keyword_audio_path = gathered_results
+    logging.info(f"--- НАЧАЛО ОБОГАЩЕНИЯ (AI V2) для '{keyword}' ---")
     
-    enriched_data = {
+    lang_map = {'en': 'english', 'ru': 'russian', 'es': 'spanish', 'pt': 'portuguuese'}
+    full_language_name = lang_map.get(lang_code, lang_code)
+    
+    ai_data = await generate_examples_with_ai(keyword, full_language_name)
+    if not ai_data: return None
+
+    image_query = ai_data.get("image_query", keyword)
+    examples = ai_data.get("examples", [])
+
+    gathered_results = await asyncio.gather(
+        get_translation(keyword, from_lang=lang_code, to_lang=target_lang),
+        find_image_for_keyword(image_query),
+        generate_audio(keyword, lang_code, "keyword")
+    )
+    
+    translation, image_path, keyword_audio_path = gathered_results
+    
+    return {
         'keyword': keyword,
         'translation': translation,
         'examples': examples,
         'image_path': image_path,
         'audio_path': keyword_audio_path,
     }
-    
-    logging.info(f"--- КОНЕЦ ОБОГАЩЕНИЯ для '{keyword}'. Найдено {len(examples) if examples else 0} примеров. ---")
-    return enriched_data

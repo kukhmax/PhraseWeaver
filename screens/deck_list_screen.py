@@ -1,29 +1,25 @@
+# Файл: screens/deck_list_screen.py
+
 from functools import partial
 from kivy.clock import Clock
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
-# ИСПРАВЛЕНО: Импортируем конкретные кнопки
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
-# ИСПРАВЛЕНО: Классический MDDialog
 from kivymd.uix.dialog import MDDialog
-# ИСПРАВЛЕНО: Классические элементы списка
-from kivymd.uix.list import OneLineAvatarIconListItem, IRightBodyTouch
+# --- ИСПРАВЛЕНИЕ ЗДЕСЬ: Импортируем ПРАВИЛЬНЫЙ класс для списка ---
+from kivymd.uix.list import TwoLineAvatarIconListItem, IRightBodyTouch
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.textfield import MDTextField
 
 from core.config import SUPPORTED_LANGUAGES
 
-
-# ИСПРАВЛЕНО: Вспомогательный класс для иконки, чтобы она была кликабельной
-class ListItemWithRightIcon(OneLineAvatarIconListItem):
+# Вспомогательный класс для правой кнопки, теперь это просто кнопка
+class RightButtonWidget(IRightBodyTouch, MDRaisedButton):
     pass
-
-class RightIconWidget(IRightBodyTouch, MDFlatButton):
-    pass
-
 
 class CreateDeckDialogContent(MDBoxLayout):
+    # ... (Этот класс без изменений) ...
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = "vertical"
@@ -52,27 +48,33 @@ class DeckListScreen(MDScreen):
         deck_list_widget.clear_widgets()
 
         if not decks:
-            item = OneLineAvatarIconListItem(text="Колод пока нет. Создайте первую!")
+            item = TwoLineAvatarIconListItem(text="Колод пока нет. Создайте первую!")
             deck_list_widget.add_widget(item)
             return
 
         for deck in decks:
             review_count = self.db_manager.count_cards_for_review(deck['id'])
+            total_count = self.db_manager.count_all_cards_in_deck(deck['id'])
             lang_name = SUPPORTED_LANGUAGES.get(deck['lang_code'], deck['lang_code'].upper())
 
-            item = OneLineAvatarIconListItem(
+            # --- ИСПРАВЛЕНИЕ ЗДЕСЬ: Используем TwoLineAvatarIconListItem ---
+            item = TwoLineAvatarIconListItem(
                 text=f"{deck['name']} ({lang_name})",
-                secondary_text=f"К повторению: {review_count}",
+                secondary_text=f"Всего: {total_count} | К повторению: {review_count}",
                 on_release=lambda x, current_deck=deck: self.go_to_creation_screen(current_deck)
             )
-            # ИСПРАВЛЕНО: Добавляем правую иконку для тренировки
-            right_icon = RightIconWidget(
-                text="ТРЕНИРОВАТЬ",
+            
+            # Мы используем кастомный виджет, чтобы кнопка выглядела лучше
+            right_icon = RightButtonWidget(
+                text="ТРЕН.", # Короткий текст, чтобы влезало
+                theme_text_color="Custom",
+                text_color=self.app.theme_cls.primary_color,
                 on_press=lambda x, deck_id=deck['id']: self.go_to_training(deck_id)
             )
             item.add_widget(right_icon)
             deck_list_widget.add_widget(item)
 
+    # ... (остальные методы класса остаются без изменений)
     def go_to_training(self, deck_id):
         if self.db_manager.count_cards_for_review(deck_id) == 0:
             return
@@ -95,12 +97,10 @@ class DeckListScreen(MDScreen):
         self.menu = MDDropdownMenu(caller=content.language_button, items=menu_items, width_mult=4)
         content.language_button.on_release = self.menu.open
 
-        # --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
         self.dialog = MDDialog(
             title="Создать новую колоду",
             type="custom",
             content_cls=content,
-            # Добавляем это свойство, чтобы окно не закрывалось само по себе
             auto_dismiss=False, 
             buttons=[
                 MDFlatButton(text="ОТМЕНА", on_release=self.close_dialog),
@@ -152,17 +152,11 @@ class DeckListScreen(MDScreen):
         self.menu.open()
 
     def go_to_creation_screen(self, deck_info, initial_text=None):
-        """Переходит на экран создания карточки, СОХРАНЯЯ данные о колоде в manager."""
         if hasattr(self, 'menu') and self.menu: self.menu.dismiss()
             
         creation_screen = self.manager.get_screen('creation_screen')
-        
-        # --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
-        # Сохраняем данные о колоде в ScreenManager, чтобы они были доступны всем
         self.manager.current_deck_id = deck_info['id']
         self.manager.current_lang_code = deck_info['lang_code']
-        
-        # Передаем стартовый текст, если он есть (например, из буфера обмена)
         creation_screen.initial_text = initial_text
         
         self.manager.current = 'creation_screen'

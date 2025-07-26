@@ -1,3 +1,4 @@
+# Файл: core/ai_generator.py
 import os
 import google.generativeai as genai
 import logging
@@ -8,52 +9,49 @@ try:
     model = genai.GenerativeModel('gemini-1.5-flash')
     logging.info("Модель Google Gemini успешно настроена.")
 except KeyError:
+    # ... (обработка ошибок без изменений) ...
     logging.error("КРИТИЧЕСКАЯ ОШИБКА: Переменная окружения GOOGLE_API_KEY не установлена!")
-    logging.error("Перед запуском выполните в терминале: export GOOGLE_API_KEY='ВАШ_КЛЮЧ'")
     model = None
 except Exception as e:
     logging.error(f"Ошибка конфигурации Gemini API: {e}")
     model = None
 
+# --- ИЗМЕНЕНИЕ: Улучшаем наш промпт ---
 PROMPT_TEMPLATE = """
-Твоя задача - помочь в изучении языков. 
-Создай 5 реалистичных примеров предложений на языке "{language}" со словом или фразой "{keyword}".
-Используй разные грамматические формы этого слова, если это возможно (разные времена, падежи, спряжения).
-Для каждого предложения предоставь точный перевод на русский язык.
+Твоя задача - помочь в изучении языков.
+Для слова или фразы "{keyword}" на языке "{language}":
 
-Критически важно: верни ответ ТОЛЬКО в виде валидного JSON-массива объектов, без каких-либо других слов, пояснений или markdown-форматирования.
+1.  Придумай одно или два ключевых слова на английском языке для поиска картинки, которая лучше всего визуально ассоциируется с "{keyword}". Назови это поле "image_query".
+2.  Создай 5 реалистичных примеров предложений со словом "{keyword}". Используй разные грамматические формы.
+3.  Для каждого предложения предоставь точный перевод на русский язык.
+
+Критически важно: верни ответ ТОЛЬКО в виде валидного JSON-объекта, без каких-либо других слов или форматирования.
 
 Пример формата:
-[
-  {{"original": "Пример предложения на заданном языке...", "translation": "Его перевод на русский..."}},
-  {{"original": "Второй пример...", "translation": "Второй перевод..."}}
-]
+{{
+  "image_query": "home cottage peaceful",
+  "examples": [
+    {{"original": "Пример предложения...", "translation": "Его перевод..."}},
+    {{"original": "Второй пример...", "translation": "Второй перевод..."}}
+  ]
+}}
 """
 
-async def generate_examples_with_ai(keyword: str, language: str) -> list[dict]:
-    if not model:
-        logging.error("Модель AI не инициализирована. Примеры не будут сгенерированы.")
-        return []
+async def generate_examples_with_ai(keyword: str, language: str) -> dict | None:
+    if not model: return None
 
     prompt = PROMPT_TEMPLATE.format(keyword=keyword, language=language)
-    print("\n--- DEBUG: Промпт для AI ---\n", prompt, "\n--------------------------\n")
+    logging.info(f"Отправка AI-запроса для '{keyword}'...")
 
     try:
         response = await model.generate_content_async(prompt)
-        raw_text = response.text.strip()
-        print(f"--- DEBUG: СЫРОЙ ОТВЕТ ОТ AI ---\n{raw_text}\n--------------------------\n")
+        raw_text = response.text.strip().replace("```json", "").replace("```", "").strip()
         
-        cleaned_response = raw_text.replace("```json", "").replace("```", "").strip()
+        # Теперь мы ожидаем не список, а словарь
+        data = json.loads(raw_text)
+        logging.info(f"AI успешно сгенерировал данные для '{keyword}'.")
+        return data # Возвращаем весь словарь {"image_query": ..., "examples": [...]}
 
-        examples = json.loads(cleaned_response)
-        logging.info(f"AI успешно сгенерировал и распарсил {len(examples)} примеров.")
-        return examples
-
-    except json.JSONDecodeError as e:
-        print(f"--- DEBUG: ОШИБКА ПАРСИНГА JSON ---\n{e}\n--------------------------\n")
-        logging.error(f"Не удалось распарсить JSON от AI. Ответ был: {raw_text}")
-        return []
     except Exception as e:
-        print(f"--- DEBUG: КРИТИЧЕСКАЯ ОШИБКА В AI ---\n{e}\n--------------------------\n")
-        logging.error(f"Неизвестная ошибка при работе с AI: {e}")
-        return []
+        logging.error(f"Ошибка при работе с AI: {e}")
+        return None

@@ -240,3 +240,19 @@ class DatabaseManager:
             return False
         finally:
             if conn: conn.close()
+
+    def count_all_cards_in_deck(self, deck_id: int) -> int:
+        """Считает общее количество карточек в колоде."""
+        sql = "SELECT COUNT(id) FROM cards WHERE deck_id = ?"
+        conn = self._get_connection()
+        if not conn: return 0
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql, (deck_id,))
+            # fetchone()[0] вернет первое значение из первой строки - как раз наше число
+            return cursor.fetchone()[0]
+        except sqlite3.Error as e:
+            logging.error(f"Ошибка при подсчете всех карточек: {e}")
+            return 0
+        finally:
+            if conn: conn.close()
