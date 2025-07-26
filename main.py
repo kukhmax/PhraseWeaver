@@ -14,6 +14,7 @@ from core.database import DatabaseManager
 from screens.deck_list_screen import DeckListScreen
 from screens.creation_screen import CreationScreen
 from screens.training_screen import TrainingScreen
+from screens.curation_screen import CurationScreen
 
 
 Window.size = (400, 700)
@@ -23,6 +24,7 @@ ScreenManager:
     DeckListScreen:
     CreationScreen:
     TrainingScreen:
+    CurationScreen:
 
 <DeckListScreen>:
     name: 'deck_list'
@@ -145,6 +147,50 @@ ScreenManager:
             MDRaisedButton:
                 text: "Легко"
                 on_release: root.evaluate_answer("easy")
+<CurationScreen>:
+    name: 'curation_screen'
+
+    MDBoxLayout:
+        orientation: 'vertical'
+
+        MDTopAppBar:
+            title: "Выберите лучшее"
+            # Эта кнопка будет вести обратно на экран создания, если пользователь передумал
+            left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'creation_screen')]]
+        
+        MDBoxLayout:
+            orientation: 'vertical'
+            padding: "16dp"
+            spacing: "16dp"
+
+            # --- Область для картинки ---
+            MDCard:
+                size_hint_y: None
+                height: "200dp" # Фиксированная высота для предпросмотра
+                # Мы будем менять 'source' из Python-кода
+                Image:
+                    id: image_preview
+                    source: 'assets/images/placeholder.png' # ВАЖНО: нужна картинка-заглушка
+                    allow_stretch: True
+                    keep_ratio: True
+                    fit_mode: "contain"
+
+            MDLabel:
+                text: "Найденные примеры:"
+                halign: "center"
+                font_style: "H6"
+            
+            # --- Область для списка фраз ---
+            ScrollView:
+                # Этот ScrollView займет все оставшееся место
+                MDList:
+                    id: examples_list
+            
+            # --- Финальная кнопка ---
+            MDRaisedButton:
+                text: "Добавить выбранное"
+                pos_hint: {"center_x": 0.5}
+                # on_release: root.save_curated_phrases() # Эту логику мы добавим позже
 """
 
 
