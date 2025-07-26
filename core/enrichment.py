@@ -3,11 +3,12 @@
 import asyncio
 import logging
 import os
+import aiohttp
 import hashlib
 from pathlib import Path
 
 # Импортируем наши новые парсеры и поисковики
-from core.reverso_parser import find_examples_on_reverso
+from .reverso_parser import find_examples_on_reverso
 from duckduckgo_search import AsyncDDGS
 from gtts import gTTS
 from googletrans import Translator
