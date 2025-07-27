@@ -96,58 +96,110 @@ ScreenManager:
 
 <TrainingScreen>:
     name: 'training_screen'
+
     MDBoxLayout:
         orientation: 'vertical'
+
+        # --- 1. ВЕРХНЯЯ ПАНЕЛЬ С ПРОГРЕССОМ ---
         MDTopAppBar:
             title: "Тренировка"
             pos_hint: {"top": 1}
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
+        
         MDProgressBar:
             id: progress_bar
             value: 0
-        MDBoxLayout:
-            orientation: 'vertical'
-            padding: "24dp"
-            spacing: "24dp"
-            MDCard:
+
+        # --- 2. ГЛАВНАЯ ОБЛАСТЬ С КОНТЕНТОМ ---
+        ScrollView:
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
                 padding: "16dp"
-                MDLabel:
-                    id: front_card_label
-                    text: "Загрузка карточки..."
-                    halign: "center"
-                    theme_text_color: "Primary"
-                    font_style: "H5"
-            MDCard:
-                padding: "16dp"
-                MDLabel:
-                    id: back_card_label
-                    text: ""
-                    halign: "center"
-                    theme_text_color: "Secondary"
-                    font_style: "H6"
-            MDRaisedButton:
-            
-                text: "Показать ответ"
-                pos_hint: {"center_x": 0.5}
-                on_release: root.show_answer()
-        MDBoxLayout:
-            id: answer_buttons
-            orientation: 'horizontal'
-            adaptive_height: True
-            padding: "16dp"
-            spacing: "16dp"
-            pos_hint: {"center_x": 0.5}
-            opacity: 0 
-            disabled: True
-            MDRaisedButton:
-                text: "Снова"
-                on_release: root.evaluate_answer("again")
-            MDRaisedButton:
-                text: "Хорошо"
-                on_release: root.evaluate_answer("good")
-            MDRaisedButton:
-                text: "Легко"
-                on_release: root.evaluate_answer("easy")
+                spacing: "16dp"
+
+                # --- 3. КАРТОЧКА С "ВОПРОСОМ" ---
+                MDCard:
+                    id: question_card
+                    orientation: 'vertical'
+                    padding: "16dp"
+                    size_hint_y: None
+                    height: "280dp" # Даем достаточно места для картинки и текста
+
+                    FitImage:
+                        id: card_image
+                        source: 'assets/placeholder.png'
+                        size_hint_y: 0.7
+
+                    MDBoxLayout:
+                        orientation: 'horizontal'
+                        adaptive_height: True
+                        padding: ["10dp", 0, "10dp", 0]
+
+                        MDLabel:
+                            id: question_label
+                            text: "Загрузка..."
+                            halign: "center"
+                            font_style: "H6"
+                            size_hint_x: 0.9
+                        
+                        MDIconButton:
+                            id: play_audio_button
+                            icon: "volume-high"
+                            pos_hint: {"center_y": 0.5}
+                            on_release: root.play_audio()
+
+                # --- 4. ОБЛАСТЬ ДЛЯ ОТВЕТА ПОЛЬЗОВАТЕЛЯ ---
+                MDBoxLayout:
+                    id: answer_area
+                    orientation: 'vertical'
+                    adaptive_height: True
+                    spacing: "8dp"
+
+                    MDTextField:
+                        id: answer_input
+                        hint_text: "Ваш ответ..."
+                        # Изначально поле ввода скрыто
+                        size_hint_y: None 
+                        height: 0
+                        opacity: 0
+                        disabled: True
+                    
+                    MDLabel:
+                        id: correct_answer_label
+                        halign: "center"
+                        theme_text_color: "Hint"
+                        # Изначально это поле тоже скрыто
+                        size_hint_y: None
+                        height: 0
+
+                # --- 5. ГЛАВНАЯ КНОПКА ДЕЙСТВИЯ ---
+                MDRaisedButton:
+                    id: action_button
+                    text: "Показать ответ"
+                    pos_hint: {"center_x": 0.5}
+                    on_release: root.handle_main_action()
+
+                # --- 6. КНОПКИ ОЦЕНКИ SRS ---
+                MDBoxLayout:
+                    id: srs_buttons
+                    orientation: 'horizontal'
+                    adaptive_height: True
+                    spacing: "16dp"
+                    pos_hint: {"center_x": 0.5}
+                    # Изначально скрыты
+                    opacity: 0
+                    disabled: True
+
+                    MDRaisedButton:
+                        text: "Снова"
+                        on_release: root.evaluate_answer("again")
+                    MDRaisedButton:
+                        text: "Хорошо"
+                        on_release: root.evaluate_answer("good")
+                    MDRaisedButton:
+                        text: "Легко"
+                        on_release: root.evaluate_answer("easy")
 <CurationScreen>:
     name: 'curation_screen'
 
