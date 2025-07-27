@@ -72,7 +72,7 @@ ScreenManager:
                         pos_hint: {"center_y": 0.5}
                 MDTextField:
                     id: keyword_field
-                    hint_text: "Ключевая фраза"
+                    hint_text: "Ключевая слово"
                     mode: "fill"
                 MDRaisedButton:
                     id: enrich_button
