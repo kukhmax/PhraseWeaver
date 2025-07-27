@@ -97,88 +97,93 @@ ScreenManager:
     name: 'training_screen'
     MDBoxLayout:
         orientation: 'vertical'
+        # --- ИСПРАВЛЕНО 1: Используем правильное имя цвета фона для KivyMD 1.2.0 ---
+        md_bg_color: app.theme_cls.bg_light
+
         MDTopAppBar:
             title: "Тренировка"
-            pos_hint: {"top": 1}
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
+        
         MDProgressBar:
             id: progress_bar
             value: 0
+
         MDBoxLayout:
             orientation: 'vertical'
             padding: "16dp"
             spacing: "16dp"
+            
             MDCard:
                 id: question_card
                 orientation: 'vertical'
-                padding: "16dp"
-                size_hint_y: 0.4 
-                FitImage:
+                padding: "8dp"
+                # --- ИСПРАВЛЕНО 2: Используем правильное имя цвета карточки ---
+                md_bg_color: app.theme_cls.bg_normal 
+                size_hint_y: 0.5
+                radius: [12, 12, 12, 12]
+                # Убираем FitImage, т.к. он может быть нестабилен. Image надежнее.
+                Image:
                     id: card_image
                     source: 'assets/placeholder.png'
                     size_hint_y: 0.8
                 MDBoxLayout:
-                    orientation: 'horizontal'
                     adaptive_height: True
+                    padding: "8dp"
                     MDLabel:
                         id: question_label
                         text: "Загрузка..."
-                        halign: "center"
+                        halign: 'center'
                         font_style: "H6"
                     MDIconButton:
                         id: play_audio_button
                         icon: "volume-high"
-                        pos_hint: {"center_y": 0.5}
                         on_release: root.play_audio()
+            
             MDBoxLayout:
-                id: control_area
                 orientation: 'vertical'
-                size_hint_y: 0.6
-                spacing: "16dp"
-                padding: [0, "16dp", 0, "16dp"]
-                MDBoxLayout:
-                    id: answer_area
-                    orientation: 'vertical'
-                    adaptive_height: True
-                    spacing: "8dp"
-                    MDTextField:
-                        id: answer_input
-                        hint_text: "Ваш ответ..."
-                        mode: 'fill'
-                        # --- ИСПРАВЛЕНИЕ ЗДЕСЬ: Каждое свойство на новой строке ---
-                        size_hint_y: None
-                        height: 0
-                        opacity: 0
-                        disabled: True
-                    MDLabel:
-                        id: correct_answer_label
-                        halign: "center"
-                        theme_text_color: "Hint"
-                        adaptive_height: True
-                Widget:
-                    size_hint_y: 1
-                MDRaisedButton:
-                    id: action_button
-                    text: "Показать ответ"
-                    pos_hint: {"center_x": 0.5}
-                    on_release: root.handle_main_action()
-                MDBoxLayout:
-                    id: srs_buttons
-                    orientation: 'horizontal'
-                    adaptive_height: True
-                    spacing: "8dp"
-                    pos_hint: {"center_x": 0.5}
+                adaptive_height: True
+                spacing: "8dp"
+                padding: ["8dp", 0, "8dp", 0]
+                MDTextField:
+                    id: answer_input
+                    hint_text: "Ваш ответ..."
+                    mode: 'fill'
+                    icon_right: ""
+                    size_hint_y: None
+                    height: 0
                     opacity: 0
                     disabled: True
-                    MDRaisedButton:
-                        text: "Снова"
-                        on_release: root.evaluate_answer("again")
-                    MDRaisedButton:
-                        text: "Хорошо"
-                        on_release: root.evaluate_answer("good")
-                    MDRaisedButton:
-                        text: "Легко"
-                        on_release: root.evaluate_answer("easy")
+                MDLabel:
+                    id: correct_answer_label
+                    halign: 'center'
+                    theme_text_color: "Secondary"
+                    adaptive_height: True
+
+            Widget: # Распорка
+
+            MDRaisedButton:
+                id: action_button
+                text: "Показать ответ"
+                pos_hint: {"center_x": 0.5}
+                on_release: root.handle_main_action()
+
+            MDBoxLayout:
+                id: srs_buttons
+                orientation: 'horizontal'
+                adaptive_height: True
+                spacing: "8dp"
+                pos_hint: {"center_x": 0.5}
+                opacity: 0
+                disabled: True
+                MDRaisedButton:
+                    text: "Снова"
+                    on_release: root.evaluate_answer("again")
+                MDRaisedButton:
+                    text: "Хорошо"
+                    on_release: root.evaluate_answer("good")
+                MDRaisedButton:
+                    text: "Легко"
+                    on_release: root.evaluate_answer("easy")
 <CurationScreen>:
     name: 'curation_screen'
 
