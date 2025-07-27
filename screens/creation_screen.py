@@ -1,4 +1,3 @@
-# Файл: screens/creation_screen.py (ФИНАЛЬНАЯ ВЕРСИЯ ЭТАПА)
 import asyncio
 from threading import Thread
 from kivy.clock import mainthread
