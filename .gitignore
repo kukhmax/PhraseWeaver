@@ -225,3 +225,4 @@ dist/
 
 *.mp3
 .vscode
+*assets/
