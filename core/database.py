@@ -1,6 +1,6 @@
 # Файл: core/database.py (ФИНАЛЬНАЯ ВЕРСИЯ v4)
 import sqlite3, logging, json, re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - DB - %(levelname)s - %(message)s')
 DB_NAME = 'phraseweaver.db'
@@ -15,16 +15,42 @@ class DatabaseManager:
         except: return None
     
     def _init_db(self):
-        conn=self._get_connection();
-        if not conn: return
+        """
+        Инициализирует/обновляет схему базы данных.
+        Создает таблицы, если они не существуют, и выполняет миграции.
+        """
+        conn = self._get_connection()
+        if not conn: 
+            return
         try:
             with conn:
-                c=conn.cursor(); c.execute("CREATE TABLE IF NOT EXISTS decks (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, lang_code TEXT NOT NULL DEFAULT 'en')")
-                c.execute("CREATE TABLE IF NOT EXISTS concepts (id INTEGER PRIMARY KEY, deck_id INTEGER, keyword TEXT NOT NULL, translation TEXT, full_sentence TEXT, image_path TEXT, FOREIGN KEY (deck_id) REFERENCES decks (id))")
-                c.execute("CREATE TABLE IF NOT EXISTS cards (id INTEGER PRIMARY KEY, concept_id INTEGER, deck_id INTEGER, front TEXT NOT NULL, back TEXT NOT NULL, card_type TEXT NOT NULL, due_date DATE DEFAULT (date('now')), interval REAL DEFAULT 1, ease_factor REAL DEFAULT 2.5, repetitions INTEGER DEFAULT 0, FOREIGN KEY (concept_id) REFERENCES concepts (id), FOREIGN KEY (deck_id) REFERENCES decks (id))")
-                c.execute("PRAGMA table_info(concepts)");
-                if 'image_path' not in [col[1] for col in c.fetchall()]: c.execute("ALTER TABLE concepts ADD COLUMN image_path TEXT")
-        finally: conn.close()
+                cursor = conn.cursor()
+                # --- Создание основных таблиц (без изменений) ---
+                cursor.execute("CREATE TABLE IF NOT EXISTS decks (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, lang_code TEXT NOT NULL DEFAULT 'en')")
+                cursor.execute("CREATE TABLE IF NOT EXISTS concepts (id INTEGER PRIMARY KEY, deck_id INTEGER, keyword TEXT NOT NULL, translation TEXT, full_sentence TEXT, image_path TEXT, FOREIGN KEY (deck_id) REFERENCES decks (id))")
+                cursor.execute("CREATE TABLE IF NOT EXISTS cards (id INTEGER PRIMARY KEY, concept_id INTEGER, deck_id INTEGER, front TEXT NOT NULL, back TEXT NOT NULL, card_type TEXT NOT NULL, due_date DATE DEFAULT (date('now')), interval REAL DEFAULT 1, ease_factor REAL DEFAULT 2.5, repetitions INTEGER DEFAULT 0, FOREIGN KEY (concept_id) REFERENCES concepts (id), FOREIGN KEY (deck_id) REFERENCES decks (id))")
+                
+                # --- ИЗМЕНЕНИЕ: Создаем новую таблицу для истории ---
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS review_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        card_id INTEGER NOT NULL,
+                        review_date TEXT NOT NULL,
+                        FOREIGN KEY (card_id) REFERENCES cards (id) ON DELETE CASCADE
+                    )
+                """)
+                # --------------------------------------------------
+
+                # Миграция для старых БД (без изменений)
+                cursor.execute("PRAGMA table_info(concepts)")
+                if 'image_path' not in [col[1] for col in cursor.fetchall()]:
+                    cursor.execute("ALTER TABLE concepts ADD COLUMN image_path TEXT")
+
+                logging.info("Схема БД успешно инициализирована/обновлена.")
+        except sqlite3.Error as e:
+            logging.error(f"Ошибка при инициализации/миграции таблиц: {e}")
+        finally:
+            if conn: conn.close()
     
     def create_deck(self, name: str, lang_code: str):
         conn=self._get_connection();
@@ -93,17 +119,138 @@ class DatabaseManager:
         try: c=conn.cursor(); c.execute(sql, (d_id, now_utc, limit)); return [dict(row) for row in c.fetchall()]
         finally: conn.close()
 
-    # --- ИСПРАВЛЕНО ОКОНЧАТЕЛЬНО ---
     def update_card_srs(self, card_id: int, due_date: str, interval: float, ease_factor: float, repetitions: int):
-        """Обновляет SRS-данные, принимая правильные именованные аргументы."""
-        sql = "UPDATE cards SET due_date = ?, interval = ?, ease_factor = ?, repetitions = ? WHERE id = ?"
+        """
+        Обновляет SRS-данные карточки И ДЕЛАЕТ ЗАПИСЬ В ИСТОРИЮ.
+        """
+        update_sql = """
+        UPDATE cards 
+        SET due_date = ?, interval = ?, ease_factor = ?, repetitions = ?
+        WHERE id = ?
+        """
+        # --- ИЗМЕНЕНИЕ: Добавляем второй SQL-запрос ---
+        history_sql = """
+        INSERT INTO review_history (card_id, review_date) VALUES (?, ?)
+        """
+        # ----------------------------------------------
+        
+        now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+        
         conn = self._get_connection()
-        if not conn: return False
+        if not conn: 
+            return False
         try:
             with conn:
                 cursor = conn.cursor()
-                # Передаем значения в правильном порядке
-                cursor.execute(sql, (due_date, interval, ease_factor, repetitions, card_id))
+                # Выполняем оба запроса в одной транзакции
+                cursor.execute(update_sql, (
+                    due_date, interval, ease_factor, repetitions, card_id
+                ))
+                cursor.execute(history_sql, (card_id, now_utc))
+            logging.info(f"Карточка {card_id} обновлена и запись добавлена в историю.")
             return True
+        except sqlite3.Error as e:
+            logging.error(f"Ошибка при обновлении SRS карточки {card_id}: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    def get_reviews_per_day(self, days: int = 7) -> dict:
+        """
+        Возвращает количество повторений за каждый из последних N дней.
+        Результат: {'2025-07-27': 50, '2025-07-26': 32, ...}
+        """
+        today = datetime.now(timezone.utc).date()
+        date_list = [today - timedelta(days=i) for i in range(days)]
+        
+        # Запрос группирует все записи по дате и считает их
+        sql = """
+            SELECT 
+                substr(review_date, 1, 10) as review_day, 
+                COUNT(id) as count 
+            FROM review_history 
+            WHERE review_day >= ?
+            GROUP BY review_day
+        """
+        
+        start_date = (today - timedelta(days=days-1)).strftime('%Y-%m-%d')
+        
+        conn = self._get_connection()
+        if not conn: return {}
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql, (start_date,))
+            
+            # Создаем словарь {дата: количество} из ответа БД
+            db_results = {row['review_day']: row['count'] for row in cursor.fetchall()}
+            
+            # Заполняем пропущенные дни нулями для красивого графика
+            final_stats = {dt.strftime('%Y-%m-%d'): db_results.get(dt.strftime('%Y-%m-%d'), 0) for dt in date_list}
+            return final_stats
+            
+        except sqlite3.Error as e:
+            logging.error(f"Ошибка при получении статистики по дням: {e}")
+            return {}
+        finally:
+            if conn: conn.close()
+    
+    def get_study_streak(self) -> int:
+        """Вычисляет 'ударную серию' - количество дней занятий без перерыва."""
+        sql = "SELECT DISTINCT substr(review_date, 1, 10) as review_day FROM review_history ORDER BY review_day DESC"
+        conn = self._get_connection()
+        if not conn: return 0
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            
+            dates = [datetime.strptime(row['review_day'], '%Y-%m-%d').date() for row in cursor.fetchall()]
+            if not dates: return 0
+
+            streak = 0
+            today = datetime.now(timezone.utc).date()
+            
+            # Если сегодня занимался, начинаем с 1
+            if dates[0] == today:
+                streak = 1
+                yesterday = today - timedelta(days=1)
+                # Идем по остальным дням
+                for i in range(1, len(dates)):
+                    if dates[i] == yesterday:
+                        streak += 1
+                        yesterday -= timedelta(days=1)
+                    else:
+                        break # Нашли разрыв, останавливаемся
+            # Если сегодня не занимался, но вчера - да
+            elif dates[0] == (today - timedelta(days=1)):
+                 streak = 1 # начинаем со вчера
+                 yesterday = today - timedelta(days=2)
+                 for i in range(1, len(dates)):
+                    if dates[i] == yesterday:
+                        streak += 1
+                        yesterday -= timedelta(days=1)
+                    else:
+                        break
+            
+            return streak
+
+        except sqlite3.Error as e:
+            logging.error(f"Ошибка при подсчете ударной серии: {e}")
+            return 0
+        finally:
+            if conn: conn.close()
+
+    def count_learned_cards(self) -> int:
+        """Считает количество 'выученных' карточек (интервал > 21 дня)."""
+        sql = "SELECT COUNT(id) FROM cards WHERE interval >= 21"
+        conn = self._get_connection()
+        if not conn: return 0
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            return cursor.fetchone()[0]
+        except sqlite3.Error as e:
+            logging.error(f"Ошибка при подсчете выученных карточек: {e}")
+            return 0
         finally:
             if conn: conn.close()

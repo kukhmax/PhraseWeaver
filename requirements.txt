@@ -2,6 +2,9 @@
 # Указываем конкретные СТАБИЛЬНЫЕ версии
 kivy==2.3.0
 kivymd==1.2.0
+# Добавляем библиотеку для графиков и ее зависимость
+kivy_garden.graph==0.4.0 
+numpy>=1.23.0
 
 # --- Networking & Scraping ---
 requests>=2.31.0
@@ -14,4 +17,4 @@ googletrans==4.0.0-rc1
 gTTS>=2.5.0
 
 google-generativeai>=0.4.0 # Новая библиотека для работы с Gemini
-pexels-api==1.0.1
+pexels-api==1.0.1  # Для работы с Pexels API для загрузки изображений

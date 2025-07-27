@@ -15,6 +15,7 @@ from screens.deck_list_screen import DeckListScreen
 from screens.creation_screen import CreationScreen
 from screens.training_screen import TrainingScreen
 from screens.curation_screen import CurationScreen
+from screens.stats_screen import StatsScreen
 
 
 Window.size = (400, 700)
@@ -25,6 +26,7 @@ ScreenManager:
     CreationScreen:
     TrainingScreen:
     CurationScreen:
+    StatsScreen:
 
 <DeckListScreen>:
     name: 'deck_list'
@@ -34,6 +36,7 @@ ScreenManager:
             title: "PhraseWeaver"
             elevation: 4
             pos_hint: {"top": 1}
+            left_action_items: [["chart-timeline-variant", lambda x: setattr(root.manager, 'current', 'stats_screen')]]
             right_action_items: [["plus-box-outline", lambda x: root.show_create_deck_dialog()]]
         ScrollView:
             MDList:
@@ -43,6 +46,75 @@ ScreenManager:
         icon: "plus"
         pos_hint: {"right": 0.95, "bottom": 0.05}
         on_release: root.show_create_deck_dialog()
+<StatsScreen>:
+    name: 'stats_screen'
+    MDBoxLayout:
+        orientation: 'vertical'
+        md_bg_color: app.theme_cls.bg_light
+
+        MDTopAppBar:
+            title: "Ваш Прогресс"
+            left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
+
+        ScrollView:
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
+                padding: "16dp"
+                spacing: "16dp"
+
+                # --- Карточки для ключевых показателей (KPI) ---
+                MDBoxLayout:
+                    adaptive_height: True
+                    spacing: "16dp"
+
+                    MDCard:
+                        orientation: 'vertical'
+                        padding: "8dp"
+                        size_hint_x: 0.5
+                        md_bg_color: app.theme_cls.bg_normal
+                        MDLabel:
+                            id: learned_cards_label
+                            text: "0"
+                            halign: 'center'
+                            font_style: "H4"
+                        MDLabel:
+                            text: "Карточек выучено"
+                            halign: 'center'
+                            theme_text_color: "Secondary"
+
+                    MDCard:
+                        orientation: 'vertical'
+                        padding: "8dp"
+                        size_hint_x: 0.5
+                        md_bg_color: app.theme_cls.bg_normal
+                        MDLabel:
+                            id: streak_label
+                            text: "0"
+                            halign: 'center'
+                            font_style: "H4"
+                        MDLabel:
+                            text: "Ударная серия"
+                            halign: 'center'
+                            theme_text_color: "Secondary"
+
+                # --- Карточка для графика ---
+                MDCard:
+                    orientation: 'vertical'
+                    padding: "8dp"
+                    size_hint_y: None
+                    height: "300dp"
+                    md_bg_color: app.theme_cls.bg_normal
+
+                    MDLabel:
+                        text: "Активность за последнюю неделю"
+                        halign: 'center'
+                        adaptive_height: True
+                        theme_text_color: "Secondary"
+                    
+                    # Пустой контейнер, куда мы будем вставлять график из Python
+                    MDBoxLayout:
+                        id: graph_container
 
 <CreationScreen>:
     name: 'creation_screen'
