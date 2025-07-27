@@ -1,4 +1,4 @@
-# Файл: screens/creation_screen.py (ФИНАЛЬНАЯ АРХИТЕКТУРНАЯ ПРАВКА)
+# Файл: screens/creation_screen.py (ФИНАЛЬНАЯ АРХИТЕКТУРНАЯ ПРАВКА v2)
 
 import asyncio
 from threading import Thread
@@ -14,15 +14,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 class CreationScreen(MDScreen):
     spinner = None
+    initial_text = None
     
     def on_pre_enter(self, *args):
         self.show_spinner(False)
+        if self.initial_text:
+            self.ids.full_sentence_field.text = self.initial_text
+            self.initial_text = None
 
     def paste_from_clipboard(self, *args):
         from kivy.core.clipboard import Clipboard
-        pasted_text = Clipboard.get()
-        if pasted_text:
-            self.ids.full_sentence_field.text = pasted_text
+        self.ids.full_sentence_field.text = Clipboard.get()
 
     def enrich_button_pressed(self):
         keyword = self.ids.keyword_field.text.strip()
@@ -38,7 +40,7 @@ class CreationScreen(MDScreen):
         ))
         thread.start()
 
-    # --- КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+    # --- КЛЮЧЕВОЕ АРХИТЕКТУРНОЕ ИСПРАВЛЕНИЕ ---
     def run_enrichment(self, deck_id, lang_code, keyword, full_sentence):
         """
         Запускает асинхронный код в фоновом потоке ПРАВИЛЬНЫМ СПОСОБОМ.
@@ -58,27 +60,34 @@ class CreationScreen(MDScreen):
             loop.close()
 
         # Передаем результат в основной поток для обновления UI
-        self.go_to_curation_screen(deck_id, full_sentence, enriched_data)
+        self.go_to_curation_screen(deck_id, keyword, full_sentence, enriched_data)
+
 
     @mainthread
-    def go_to_curation_screen(self, deck_id, full_sentence, enriched_data):
+    def go_to_curation_screen(self, deck_id, keyword, full_sentence, enriched_data):
         self.show_spinner(False)
-        if not enriched_data:
-            s = Snackbar(); s.text = "Не удалось получить данные от AI."; s.open()
+        if not enriched_data or not enriched_data.get("examples"):
+            s = Snackbar(); s.text = f"Не удалось найти примеры для '{keyword}'"; s.open()
             return
 
         user_original = full_sentence if full_sentence else enriched_data.get('keyword', '')
         user_translation = enriched_data.get('full_sentence_translation') or enriched_data.get('translation', '...')
+        # AI теперь сам выделяет тегами, нам не нужно это делать
         user_example = {'original': user_original, 'translation': user_translation}
         
-        if 'examples' not in enriched_data:
-            enriched_data['examples'] = []
-        if not any(ex['original'] == user_original for ex in enriched_data['examples']):
+        if 'examples' not in enriched_data: enriched_data['examples'] = []
+
+        # Проверяем, чтобы не добавить дубликат, если AI вернул ту же фразу
+        # Убираем теги для сравнения
+        clean_user_original = user_original.replace('<b>','').replace('</b>','')
+        is_duplicate = any(ex['original'].replace('<b>','').replace('</b>','') == clean_user_original for ex in enriched_data['examples'])
+        
+        if not is_duplicate:
             enriched_data['examples'].insert(0, user_example)
         
         curation_screen = self.manager.get_screen('curation_screen')
         curation_screen.deck_id = deck_id
-        curation_screen.keyword = enriched_data.get('keyword')
+        curation_screen.keyword = keyword
         curation_screen.enriched_data = enriched_data
         
         self.manager.current = 'curation_screen'
@@ -91,7 +100,7 @@ class CreationScreen(MDScreen):
         if show:
             button.opacity=0; button.disabled=True
             if not self.spinner: self.spinner = MDSpinner(size_hint=(None, None), size=(dp(46), dp(46)), pos_hint={'center_x': 0.5})
-            container.add_widget(self.spinner, index=container.children.index(button))
+            container.add_widget(self.spinner)
         else:
             button.opacity=1; button.disabled=False
             if self.spinner and self.spinner.parent: self.spinner.parent.remove_widget(self.spinner)

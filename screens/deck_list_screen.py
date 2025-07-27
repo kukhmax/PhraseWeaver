@@ -11,6 +11,7 @@ from kivymd.uix.list import TwoLineAvatarIconListItem, IRightBodyTouch
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.textfield import MDTextField
+from kivymd.uix.snackbar import Snackbar
 
 from core.config import SUPPORTED_LANGUAGES
 
@@ -76,13 +77,18 @@ class DeckListScreen(MDScreen):
 
     # ... (остальные методы класса остаются без изменений)
     def go_to_training(self, deck_id):
+        """Переходит на экран тренировки, НАДЕЖНО сохраняя ID колоды."""
+        # Проверяем, есть ли что тренировать, ПЕРЕД переходом
         if self.db_manager.count_cards_for_review(deck_id) == 0:
+            s = Snackbar(text="В этой колоде нет карточек для повторения.")
+            s.open()
             return
             
-        training_screen = self.manager.get_screen('training_screen')
-        training_screen.deck_id = deck_id
+        # Сохраняем ID в общем месте - ScreenManager'е
+        self.manager.current_deck_id = deck_id
+        
+        # Просто переключаем экран. on_enter в TrainingScreen сам все загрузит.
         self.manager.current = 'training_screen'
-
     def show_create_deck_dialog(self):
         if self.dialog: return
 
