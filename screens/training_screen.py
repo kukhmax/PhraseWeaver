@@ -52,7 +52,9 @@ class TrainingScreen(MDScreen):
             self.ids.correct_answer_label.text = f"Правильно: {correct_answer}"
         self.ids.answer_input.disabled=True; self._show_srs_buttons(True)
     
-    def show_correct_answer(self): self.ids.correct_answer_label.text = self.current_card['back']; self._show_srs_buttons(True)
+    def show_correct_answer(self):
+        self.ids.correct_answer_label.text = self.current_card['back']
+        self._show_srs_buttons(True)
     
     def play_audio(self):
         try:
@@ -62,9 +64,33 @@ class TrainingScreen(MDScreen):
         except: pass
     
     def evaluate_answer(self, quality: str):
+        app = MDApp.get_running_app()
         card = self.current_card
-        srs_result = calculate_next_due_date(repetitions=card['repetitions'], interval=card['interval'], ease_factor=card['ease_factor'], quality=quality)
-        self.app.db_manager.update_card_srs(card_id=card['id'], **srs_result)
+        
+        # --- ИЗМЕНЕНИЕ ЗДЕСЬ: Особая логика для "Снова" ---
+        
+        # 1. Если ответ "Снова", мы не обновляем SRS в БД сразу.
+        #    Мы просто кладем карточку обратно в конец нашей "колоды"
+        #    на эту сессию, чтобы повторить ее через несколько минут.
+        if quality == 'again':
+            self.all_cards.append(card)
+            # Перемешиваем конец списка, чтобы повторение было не сразу
+            random.shuffle(self.all_cards) 
+        
+        # 2. Если ответ "Хорошо" или "Легко", мы обновляем SRS в БД.
+        else:
+            srs_result = calculate_next_due_date(
+                repetitions=card['repetitions'],
+                interval=card['interval'],
+                ease_factor=card['ease_factor'],
+                quality=quality
+            )
+            app.db_manager.update_card_srs(
+                card_id=card['id'],
+                **srs_result
+            )
+        
+        # 3. В любом случае, переходим к следующей карточке.
         self.show_next_card()
     
     def end_training(self):
