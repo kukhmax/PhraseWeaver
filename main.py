@@ -97,17 +97,18 @@ ScreenManager:
     name: 'training_screen'
     MDBoxLayout:
         orientation: 'vertical'
-        # --- ИСПРАВЛЕНО 1: Используем правильное имя цвета фона для KivyMD 1.2.0 ---
-        md_bg_color: app.theme_cls.bg_light
+        md_bg_color: app.theme_cls.bg_light # Используем цвет фона темы
 
-        MDTopAppBar:
-            title: "Тренировка"
-            left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
-        
+        # --- ВОТ ГДЕ МЫ РЕГУЛИРУЕМ "ПОЛОСУ" ---
         MDProgressBar:
             id: progress_bar
             value: 0
-
+            # Говорим: "Не масштабируйся по вертикали"
+            size_hint_y: None 
+            # Говорим: "Твоя высота - всего 4 пикселя"
+            height: dp(4) 
+        
+        # --- Теперь этот контейнер займет ВСЕ оставшееся место ---
         MDBoxLayout:
             orientation: 'vertical'
             padding: "16dp"
@@ -117,33 +118,31 @@ ScreenManager:
                 id: question_card
                 orientation: 'vertical'
                 padding: "8dp"
-                # --- ИСПРАВЛЕНО 2: Используем правильное имя цвета карточки ---
-                md_bg_color: app.theme_cls.bg_normal 
-                size_hint_y: 0.5
+                md_bg_color: app.theme_cls.bg_normal
+                size_hint_y: 0.5 # Занимает 50% высоты этой области
                 radius: [12, 12, 12, 12]
-                # Убираем FitImage, т.к. он может быть нестабилен. Image надежнее.
+
                 Image:
                     id: card_image
                     source: 'assets/placeholder.png'
-                    size_hint_y: 0.8
-                MDBoxLayout:
-                    adaptive_height: True
-                    padding: "8dp"
-                    MDLabel:
-                        id: question_label
-                        text: "Загрузка..."
-                        halign: 'center'
-                        font_style: "H6"
-                    MDIconButton:
-                        id: play_audio_button
-                        icon: "volume-high"
-                        on_release: root.play_audio()
+            
+            MDBoxLayout:
+                adaptive_height: True
+                padding: "8dp"
+                MDLabel:
+                    id: question_label
+                    text: "Загрузка..."
+                    halign: 'center'
+                    font_style: "H6"
+                MDIconButton:
+                    id: play_audio_button
+                    icon: "volume-high"
+                    on_release: root.play_audio()
             
             MDBoxLayout:
                 orientation: 'vertical'
                 adaptive_height: True
                 spacing: "8dp"
-                padding: ["8dp", 0, "8dp", 0]
                 MDTextField:
                     id: answer_input
                     hint_text: "Ваш ответ..."
@@ -160,13 +159,11 @@ ScreenManager:
                     adaptive_height: True
 
             Widget: # Распорка
-
             MDRaisedButton:
                 id: action_button
                 text: "Показать ответ"
                 pos_hint: {"center_x": 0.5}
                 on_release: root.handle_main_action()
-
             MDBoxLayout:
                 id: srs_buttons
                 orientation: 'horizontal'
