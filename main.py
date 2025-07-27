@@ -93,104 +93,83 @@ ScreenManager:
                     disabled: True
                     on_release: root.save_concept()
                     pos_hint: {"center_x": 0.5}
-
 <TrainingScreen>:
     name: 'training_screen'
-
     MDBoxLayout:
         orientation: 'vertical'
-
-        # --- 1. ВЕРХНЯЯ ПАНЕЛЬ С ПРОГРЕССОМ ---
         MDTopAppBar:
             title: "Тренировка"
             pos_hint: {"top": 1}
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
-        
         MDProgressBar:
             id: progress_bar
             value: 0
-
-        # --- 2. ГЛАВНАЯ ОБЛАСТЬ С КОНТЕНТОМ ---
-        ScrollView:
-            MDBoxLayout:
+        MDBoxLayout:
+            orientation: 'vertical'
+            padding: "16dp"
+            spacing: "16dp"
+            MDCard:
+                id: question_card
                 orientation: 'vertical'
-                adaptive_height: True
                 padding: "16dp"
+                size_hint_y: 0.4 
+                FitImage:
+                    id: card_image
+                    source: 'assets/placeholder.png'
+                    size_hint_y: 0.8
+                MDBoxLayout:
+                    orientation: 'horizontal'
+                    adaptive_height: True
+                    MDLabel:
+                        id: question_label
+                        text: "Загрузка..."
+                        halign: "center"
+                        font_style: "H6"
+                    MDIconButton:
+                        id: play_audio_button
+                        icon: "volume-high"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.play_audio()
+            MDBoxLayout:
+                id: control_area
+                orientation: 'vertical'
+                size_hint_y: 0.6
                 spacing: "16dp"
-
-                # --- 3. КАРТОЧКА С "ВОПРОСОМ" ---
-                MDCard:
-                    id: question_card
-                    orientation: 'vertical'
-                    padding: "16dp"
-                    size_hint_y: None
-                    height: "280dp" # Даем достаточно места для картинки и текста
-
-                    FitImage:
-                        id: card_image
-                        source: 'assets/placeholder.png'
-                        size_hint_y: 0.7
-
-                    MDBoxLayout:
-                        orientation: 'horizontal'
-                        adaptive_height: True
-                        padding: ["10dp", 0, "10dp", 0]
-
-                        MDLabel:
-                            id: question_label
-                            text: "Загрузка..."
-                            halign: "center"
-                            font_style: "H6"
-                            size_hint_x: 0.9
-                        
-                        MDIconButton:
-                            id: play_audio_button
-                            icon: "volume-high"
-                            pos_hint: {"center_y": 0.5}
-                            on_release: root.play_audio()
-
-                # --- 4. ОБЛАСТЬ ДЛЯ ОТВЕТА ПОЛЬЗОВАТЕЛЯ ---
+                padding: [0, "16dp", 0, "16dp"]
                 MDBoxLayout:
                     id: answer_area
                     orientation: 'vertical'
                     adaptive_height: True
                     spacing: "8dp"
-
                     MDTextField:
                         id: answer_input
                         hint_text: "Ваш ответ..."
-                        # Изначально поле ввода скрыто
-                        size_hint_y: None 
+                        mode: 'fill'
+                        # --- ИСПРАВЛЕНИЕ ЗДЕСЬ: Каждое свойство на новой строке ---
+                        size_hint_y: None
                         height: 0
                         opacity: 0
                         disabled: True
-                    
                     MDLabel:
                         id: correct_answer_label
                         halign: "center"
                         theme_text_color: "Hint"
-                        # Изначально это поле тоже скрыто
-                        size_hint_y: None
-                        height: 0
-
-                # --- 5. ГЛАВНАЯ КНОПКА ДЕЙСТВИЯ ---
+                        adaptive_height: True
+                Widget:
+                    size_hint_y: 1
                 MDRaisedButton:
                     id: action_button
                     text: "Показать ответ"
                     pos_hint: {"center_x": 0.5}
                     on_release: root.handle_main_action()
-
-                # --- 6. КНОПКИ ОЦЕНКИ SRS ---
                 MDBoxLayout:
                     id: srs_buttons
                     orientation: 'horizontal'
                     adaptive_height: True
-                    spacing: "16dp"
+                    spacing: "8dp"
                     pos_hint: {"center_x": 0.5}
-                    # Изначально скрыты
                     opacity: 0
                     disabled: True
-
                     MDRaisedButton:
                         text: "Снова"
                         on_release: root.evaluate_answer("again")
