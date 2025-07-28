@@ -16,8 +16,11 @@ class CreationScreen(MDScreen):
     initial_text = None
 
     def on_language_change(self):
-        # Перезагружаем колоды, т.к. в них есть переводимые строки
-        self.load_decks()
+        """Обновляет текст на виджетах этого экрана."""
+        self.ids.top_bar.title = self.app.translator.t('create_card_title')
+        self.ids.full_sentence_field.hint_text = self.app.translator.t('full_sentence_hint')
+        self.ids.keyword_field.hint_text = self.app.translator.t('keyword_hint')
+        self.ids.enrich_button.text = self.app.translator.t('enrich_button')
     
     def on_pre_enter(self, *args):
         self.show_spinner(False)

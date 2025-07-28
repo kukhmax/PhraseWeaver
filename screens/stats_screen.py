@@ -13,8 +13,12 @@ class StatsScreen(MDScreen):
     """
 
     def on_language_change(self):
-        # Перезагружаем колоды, т.к. в них есть переводимые строки
-        self.load_decks()
+        self.ids.top_bar.title = self.app.translator.t('stats_title')
+        self.ids.learned_label.text = self.app.translator.t('learned_cards')
+        self.ids.streak_label_text.text = self.app.translator.t('streak')
+        self.ids.chart_title.text = self.app.translator.t('activity_chart_title')
+        # График тоже нужно перерисовать, т.к. в нем есть текст
+        self.plot_review_history()
 
     def on_enter(self, *args):
         """Вызывается при входе на экран. Запускает обновление данных."""

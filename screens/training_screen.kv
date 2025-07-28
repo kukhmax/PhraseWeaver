@@ -5,6 +5,7 @@
         md_bg_color: app.theme_cls.bg_light
 
         MDTopAppBar:
+            id: top_bar
             title: app.translator.t('training_title')
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
 

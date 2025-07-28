@@ -3,6 +3,7 @@
     MDBoxLayout:
         orientation: 'vertical'
         MDTopAppBar:
+            id: top_bar
             title: app.translator.t('curation_title')
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'creation_screen')]]
         MDBoxLayout:
@@ -26,6 +27,7 @@
                 MDList:
                     id: examples_list
             MDRaisedButton:
+                id: enrich_button
                 text: app.translator.t('add_selected_button')
                 pos_hint: {"center_x": 0.5}
                 on_release: root.save_curated_items()

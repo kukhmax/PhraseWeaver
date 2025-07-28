@@ -15,8 +15,13 @@ class TrainingScreen(MDScreen):
     _session_total=0
 
     def on_language_change(self):
-        # Перезагружаем колоды, т.к. в них есть переводимые строки
-        self.load_decks()
+        self.ids.top_bar.title = self.app.translator.t('training_title')
+        self.ids.answer_input.hint_text = self.app.translator.t('your_answer_hint')
+        # Обновляем текст на кнопках, так как он задается из Python
+        self.show_next_card() # Этот метод уже обновит текст главной кнопки
+        self.ids.srs_buttons.children[0].text = self.app.translator.t('btn_easy')
+        self.ids.srs_buttons.children[1].text = self.app.translator.t('btn_good')
+        self.ids.srs_buttons.children[2].text = self.app.translator.t('btn_again')
     
     def on_enter(self, *args):
         # Добавляем app как свойство для легкого доступа

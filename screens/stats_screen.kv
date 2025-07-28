@@ -4,6 +4,7 @@
         orientation: 'vertical'
         md_bg_color: app.theme_cls.bg_light
         MDTopAppBar:
+            id: top_bar
             title: app.translator.t('stats_title')
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
         ScrollView:
@@ -27,6 +28,7 @@
                             halign: 'center'
                             font_style: "H4"
                         MDLabel:
+                            id: learned_label
                             text: app.translator.t('learned_cards')
                             halign: 'center'
                             theme_text_color: "Secondary"
@@ -41,6 +43,7 @@
                             halign: 'center'
                             font_style: "H4"
                         MDLabel:
+                            id: streak_label_text
                             text: app.translator.t('streak')
                             halign: 'center'
                             theme_text_color: "Secondary"
@@ -53,6 +56,7 @@
                     height: "300dp"
                     md_bg_color: app.theme_cls.bg_normal
                     MDLabel:
+                        id: chart_title
                         text: app.translator.t('activity_chart_title')
                         halign: 'center'
                         adaptive_height: True

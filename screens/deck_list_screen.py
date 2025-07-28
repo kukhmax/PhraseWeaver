@@ -37,6 +37,7 @@ class DeckListScreen(MDScreen):
     menu = None
 
     def on_language_change(self):
+        self.ids.top_bar.title = self.app.translator.t('deck_list_title')
         # Перезагружаем колоды, т.к. в них есть переводимые строки
         self.load_decks()
 
