@@ -46,8 +46,11 @@ class DatabaseManager:
                     INSERT INTO settings (key, value) VALUES ('target_language', 'ru')
                     ON CONFLICT(key) DO NOTHING
                 """)
+                cursor.execute("""
+                    INSERT INTO settings (key, value) VALUES ('ui_language', 'ru')
+                    ON CONFLICT(key) DO NOTHING
+                """)
 
-                # --- Миграция (без изменений) ---
                 cursor.execute("PRAGMA table_info(concepts)")
                 if 'image_path' not in [col[1] for col in cursor.fetchall()]:
                     cursor.execute("ALTER TABLE concepts ADD COLUMN image_path TEXT")
