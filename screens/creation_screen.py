@@ -25,6 +25,9 @@ class CreationScreen(MDScreen):
     def on_pre_enter(self, *args):
         self.show_spinner(False)
         if self.initial_text:
+            self.ids.full_sentence_field.text = ""
+            self.initial_text = ""
+        if self.initial_text:
             self.ids.full_sentence_field.text = self.initial_text
             self.initial_text = None
 

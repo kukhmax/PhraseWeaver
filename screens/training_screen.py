@@ -137,8 +137,13 @@ class TrainingScreen(MDScreen):
         self.ids.question_label.text = "Тренировка завершена!"; Clock.schedule_once(lambda dt: setattr(self.manager, 'current', 'deck_list'), 2)
     
     def _reset_ui(self):
-        self.ids.srs_buttons.opacity=0; self.ids.srs_buttons.disabled = True; self.ids.action_button.disabled = False
-        self.ids.correct_answer_label.text=""; self.ids.answer_input.text=""; self.ids.answer_input.icon_right=""
+        self.ids.srs_buttons.opacity=0
+        self.ids.srs_buttons.disabled = True
+        self.ids.action_button.disabled = False
+        self.ids.correct_answer_label.text=""
+        self.ids.answer_input.text=""
+        self.ids.answer_input.icon_right=""
+        self.ids.answer_input.fill_color_normal = self.app.theme_cls.bg_light
         self._show_input_field(False)
     
     def _show_input_field(self, show: bool):
