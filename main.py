@@ -21,7 +21,7 @@ from screens.stats_screen import StatsScreen
 from screens.settings_screen import SettingsScreen
 
 
-Window.size = (500, 800)
+Window.size = (460, 760)
 
 class PhraseWeaverApp(MDApp):
 
@@ -89,11 +89,12 @@ class PhraseWeaverApp(MDApp):
 
         # 4. Возвращаем готовый ScreenManager.
         return self.sm
-        return self.sm
-
-# def setup_environment():
-#     if not os.path.exists('assets/audio'):
-#         os.makedirs('assets/audio')
+        
+    def reload_ui(self):
+        """ПРОХОДИТ ПО ВСЕМ ЭКРАНАМ И ВЫЗЫВАЕТ ИХ МЕТОД ОБНОВЛЕНИЯ ЯЗЫКА."""
+        for screen in self.sm.screens:
+            if hasattr(screen, 'on_language_change'):
+                screen.on_language_change()
 
 
 if __name__ == '__main__':

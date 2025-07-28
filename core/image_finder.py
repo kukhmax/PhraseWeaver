@@ -5,8 +5,13 @@ from pexels_api import API
 import logging
 import asyncio
 
+from dotenv import load_dotenv
+
+# Загружаем переменные окружения из .env файла
+load_dotenv()
+
 try:
-    PEXELS_API_KEY = os.environ["PEXELS_API_KEY"]
+    PEXELS_API_KEY = os.getenv("PEXELS_API_KEY")
     api = API(PEXELS_API_KEY)
     logging.info("Pexels API успешно настроен.")
 except KeyError:
@@ -14,7 +19,8 @@ except KeyError:
     api = None
 
 async def find_image_via_api(query: str) -> str | None:
-    if not api: return None
+    if not api:
+        return None
     
     try:
         loop = asyncio.get_running_loop()

@@ -36,6 +36,10 @@ class DeckListScreen(MDScreen):
     dialog = None
     menu = None
 
+    def on_language_change(self):
+        # Перезагружаем колоды, т.к. в них есть переводимые строки
+        self.load_decks()
+
     def on_enter(self, *args):
         """
         Это ключ к обновлению счетчиков! Этот метод вызывается КАЖДЫЙ РАЗ,

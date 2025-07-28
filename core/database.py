@@ -129,38 +129,17 @@ class DatabaseManager:
         finally: conn.close()
 
     def update_card_srs(self, card_id: int, due_date: str, interval: float, ease_factor: float, repetitions: int):
-        """
-        Обновляет SRS-данные карточки И ДЕЛАЕТ ЗАПИСЬ В ИСТОРИЮ.
-        """
-        update_sql = """
-        UPDATE cards 
-        SET due_date = ?, interval = ?, ease_factor = ?, repetitions = ?
-        WHERE id = ?
-        """
-        # --- ИЗМЕНЕНИЕ: Добавляем второй SQL-запрос ---
-        history_sql = """
-        INSERT INTO review_history (card_id, review_date) VALUES (?, ?)
-        """
-        # ----------------------------------------------
-        
-        now_utc = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-        
+        """Обновляет SRS-данные, принимая правильные именованные аргументы."""
+        sql = "UPDATE cards SET due_date = ?, interval = ?, ease_factor = ?, repetitions = ? WHERE id = ?"
         conn = self._get_connection()
-        if not conn: 
+        if not conn:
             return False
         try:
             with conn:
                 cursor = conn.cursor()
-                # Выполняем оба запроса в одной транзакции
-                cursor.execute(update_sql, (
-                    due_date, interval, ease_factor, repetitions, card_id
-                ))
-                cursor.execute(history_sql, (card_id, now_utc))
-            logging.info(f"Карточка {card_id} обновлена и запись добавлена в историю.")
+                # Передаем значения в правильном порядке
+                cursor.execute(sql, (due_date, interval, ease_factor, repetitions, card_id))
             return True
-        except sqlite3.Error as e:
-            logging.error(f"Ошибка при обновлении SRS карточки {card_id}: {e}")
-            return False
         finally:
             if conn:
                 conn.close()
@@ -265,30 +244,19 @@ class DatabaseManager:
             if conn: conn.close()
 
     def get_setting(self, key: str, default: str = None) -> str:
-        """
-        Получает значение настройки по ключу.
-        Если настройка не найдена, возвращает значение по умолчанию.
-        """
-        sql = "SELECT value FROM settings WHERE key = ?"
+        """Получает значение настройки по ключу."""
         conn = self._get_connection()
         if not conn: return default
         try:
             cursor = conn.cursor()
-            cursor.execute(sql, (key,))
+            cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
             row = cursor.fetchone()
             return row['value'] if row else default
-        except sqlite3.Error as e:
-            logging.error(f"Ошибка получения настройки '{key}': {e}")
-            return default
         finally:
             if conn: conn.close()
 
     def set_setting(self, key: str, value: str):
-        """
-        Сохраняет или обновляет значение настройки.
-        """
-        # REPLACE INTO - это удобная команда SQLite, которая работает как INSERT или UPDATE
-        # Если ключ уже есть - он обновит значение. Если нет - вставит новую строку.
+        """Сохраняет или обновляет значение настройки."""
         sql = "REPLACE INTO settings (key, value) VALUES (?, ?)"
         conn = self._get_connection()
         if not conn: return
@@ -297,7 +265,5 @@ class DatabaseManager:
                 cursor = conn.cursor()
                 cursor.execute(sql, (key, value))
             logging.info(f"Настройка '{key}' установлена в '{value}'.")
-        except sqlite3.Error as e:
-            logging.error(f"Ошибка сохранения настройки '{key}': {e}")
         finally:
             if conn: conn.close()

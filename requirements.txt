@@ -18,3 +18,5 @@ gTTS>=2.5.0
 
 google-generativeai>=0.4.0 # Новая библиотека для работы с Gemini
 pexels-api==1.0.1  # Для работы с Pexels API для загрузки изображений
+
+python-dotenv==0.21.0

@@ -61,6 +61,9 @@ TRANSLATIONS = {
         'language_settings': 'Языковые настройки',
         'translate_to': 'Я перевожу на',
         'select_target_language': 'Выберите язык для перевода',
+        'interface_language': 'Язык интерфейса',
+        'select_ui_language': 'Выберите язык интерфейса',
+        'language_name': 'Русский',
     },
     'en': {
         # General
@@ -122,6 +125,9 @@ TRANSLATIONS = {
         'language_settings': 'Language Settings',
         'translate_to': 'I translate to',
         'select_target_language': 'Select target language',
+        'interface_language': 'Interface Language',
+        'select_ui_language': 'Select Interface Language',
+        'language_name': 'English',
     }
 }
 

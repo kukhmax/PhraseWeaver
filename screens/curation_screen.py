@@ -11,7 +11,12 @@ from core.enrichment import generate_audio
 class CurationScreen(MDScreen):
     deck_id = None; lang_code = None; keyword = None; enriched_data = None
     
-    def on_pre_enter(self, *args): self.populate_screen()
+    def on_language_change(self):
+        # Перезагружаем колоды, т.к. в них есть переводимые строки
+        self.load_decks()
+
+    def on_pre_enter(self, *args):
+        self.populate_screen()
         
     def populate_screen(self):
         # ... (этот метод без изменений) ...
@@ -81,5 +86,7 @@ class CurationScreen(MDScreen):
 
     @mainthread
     def on_saving_complete(self, count):
-        s = Snackbar(); s.text = f"Успешно добавлено {count} новых карточек!"; s.open()
+        s = Snackbar()
+        s.text = f"Успешно добавлено {count} новых карточек!"
+        s.open()
         self.manager.current = 'deck_list'

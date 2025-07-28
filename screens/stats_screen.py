@@ -12,6 +12,10 @@ class StatsScreen(MDScreen):
     Экран для отображения статистики и прогресса пользователя.
     """
 
+    def on_language_change(self):
+        # Перезагружаем колоды, т.к. в них есть переводимые строки
+        self.load_decks()
+
     def on_enter(self, *args):
         """Вызывается при входе на экран. Запускает обновление данных."""
         self.update_stats()

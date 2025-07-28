@@ -13,6 +13,10 @@ class TrainingScreen(MDScreen):
     current_card=None
     _current_mode=None
     _session_total=0
+
+    def on_language_change(self):
+        # Перезагружаем колоды, т.к. в них есть переводимые строки
+        self.load_decks()
     
     def on_enter(self, *args):
         # Добавляем app как свойство для легкого доступа
@@ -107,50 +111,29 @@ class TrainingScreen(MDScreen):
         except: pass
     
     def evaluate_answer(self, quality: str):
-        app = MDApp.get_running_app()
         card = self.current_card
-        
-        # --- ИЗМЕНЕНИЕ ЗДЕСЬ: Особая логика для "Снова" ---
-        
-        # 1. Если ответ "Снова", мы не обновляем SRS в БД сразу.
-        #    Мы просто кладем карточку обратно в конец нашей "колоды"
-        #    на эту сессию, чтобы повторить ее через несколько минут.
-        if quality == 'again':
-            self.all_cards.append(card)
-            # Перемешиваем конец списка, чтобы повторение было не сразу
-            random.shuffle(self.all_cards) 
-        
-        # 2. Если ответ "Хорошо" или "Легко", мы обновляем SRS в БД.
-        else:
-            srs_result = calculate_next_due_date(
-                repetitions=card['repetitions'],
-                interval=card['interval'],
-                ease_factor=card['ease_factor'],
-                quality=quality
-            )
-            app.db_manager.update_card_srs(
-                card_id=card['id'],
-                **srs_result
-            )
-        
-        # 3. В любом случае, переходим к следующей карточке.
+        srs_result = calculate_next_due_date(
+            repetitions=card['repetitions'],
+            interval=card['interval'],
+            ease_factor=card['ease_factor'],
+            quality=quality
+        )
+        # Передаем ИМЕНОВАННЫЕ аргументы
+        self.app.db_manager.update_card_srs(
+            card_id=card['id'],
+            due_date=srs_result['due_date'],
+            interval=srs_result['interval'],
+            ease_factor=srs_result['ease_factor'],
+            repetitions=srs_result['repetitions']
+        )
         self.show_next_card()
     
     def end_training(self):
-        """Завершает тренировку."""
-        self.ids.question_label.text = self.app.translator.t('training_complete')
-        self.ids.card_image.source = ''
-        self.ids.action_button.disabled = True
-        Clock.schedule_once(lambda dt: setattr(self.manager, 'current', 'deck_list'), 2)
-
+        self.ids.question_label.text = "Тренировка завершена!"; Clock.schedule_once(lambda dt: setattr(self.manager, 'current', 'deck_list'), 2)
+    
     def _reset_ui(self):
-        """Сбрасывает UI к начальному состоянию перед показом новой карточки."""
-        self.ids.srs_buttons.opacity=0
-        self.ids.srs_buttons.disabled = True
-        self.ids.action_button.disabled = False
-        self.ids.correct_answer_label.text=""
-        self.ids.answer_input.text=""; self.ids.answer_input.icon_right=""
-        self.ids.answer_input.fill_color_normal = self.app.theme_cls.bg_light
+        self.ids.srs_buttons.opacity=0; self.ids.srs_buttons.disabled = True; self.ids.action_button.disabled = False
+        self.ids.correct_answer_label.text=""; self.ids.answer_input.text=""; self.ids.answer_input.icon_right=""
         self._show_input_field(False)
     
     def _show_input_field(self, show: bool):
@@ -158,5 +141,7 @@ class TrainingScreen(MDScreen):
         else: self.ids.answer_input.height=0; self.ids.answer_input.opacity=0; self.ids.answer_input.disabled=True
     
     def _show_srs_buttons(self, show: bool):
+        if show: self.ids.srs_buttons.opacity=1; self.ids.srs_buttons.disabled=False; self.ids.action_button.disabled=True
+        else: self.ids.srs_buttons.opacity=0; self.ids.srs_buttons.disabled=True
         if show: self.ids.srs_buttons.opacity=1; self.ids.srs_buttons.disabled=False; self.ids.action_button.disabled=True
         else: self.ids.srs_buttons.opacity=0; self.ids.srs_buttons.disabled=True

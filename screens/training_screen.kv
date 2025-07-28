@@ -3,6 +3,11 @@
     MDBoxLayout:
         orientation: 'vertical'
         md_bg_color: app.theme_cls.bg_light
+
+        MDTopAppBar:
+            title: app.translator.t('training_title')
+            left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
+
         MDProgressBar:
             id: progress_bar
             value: 0
@@ -20,7 +25,7 @@
                     padding: "8dp"
                     md_bg_color: app.theme_cls.bg_normal
                     size_hint_y: None
-                    height: dp(300)
+                    height: dp(250)
                     radius: [12, 12, 12, 12]
                     Image:
                         id: card_image
@@ -58,6 +63,7 @@
                         halign: 'center'
                         theme_text_color: "Secondary"
                         adaptive_height: True
+                Widget:
                 MDRaisedButton:
                     id: action_button
                     text: app.translator.t('show_answer_button')
@@ -73,7 +79,11 @@
                     disabled: True
                     MDRaisedButton:
                         text: app.translator.t('btn_again')
+                        on_release: root.evaluate_answer("again")
                     MDRaisedButton:
                         text: app.translator.t('btn_good')
+                        on_release: root.evaluate_answer("good")
                     MDRaisedButton:
                         text: app.translator.t('btn_easy')
+                        on_release: root.evaluate_answer("easy")
+                    

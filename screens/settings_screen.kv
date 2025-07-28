@@ -4,6 +4,7 @@
         orientation: 'vertical'
         md_bg_color: app.theme_cls.bg_light
         MDTopAppBar:
+            id: top_bar
             title: app.translator.t('settings_title')
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
         ScrollView:
@@ -13,15 +14,21 @@
                 padding: "16dp"
                 spacing: "24dp"
                 MDLabel:
+                    id: lang_settings_label
                     text: app.translator.t('language_settings')
                     font_style: "H6"
                     adaptive_height: True
                 TwoLineAvatarIconListItem:
-                    text: app.translator.t('translate_to')
-                    secondary_text: "Русский"
                     id: target_lang_item
-                    on_release: root.show_target_language_dialog()                    
+                    on_release: root.show_target_language_dialog()
                     IconLeftWidget:
                         icon: "translate"
+                    IconRightWidget:
+                        icon: "chevron-down"
+                TwoLineAvatarIconListItem:
+                    id: ui_lang_item
+                    on_release: root.show_ui_language_dialog()
+                    IconLeftWidget:
+                        icon: "cog-outline"
                     IconRightWidget:
                         icon: "chevron-down"

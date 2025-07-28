@@ -14,6 +14,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class CreationScreen(MDScreen):
     spinner = None
     initial_text = None
+
+    def on_language_change(self):
+        # Перезагружаем колоды, т.к. в них есть переводимые строки
+        self.load_decks()
     
     def on_pre_enter(self, *args):
         self.show_spinner(False)
@@ -58,7 +62,6 @@ class CreationScreen(MDScreen):
         finally:
             loop.close()
         self.go_to_curation_screen(deck_id, keyword, full_sentence, enriched_data)
-
 
     @mainthread
     def go_to_curation_screen(self, deck_id, keyword, full_sentence, enriched_data):
