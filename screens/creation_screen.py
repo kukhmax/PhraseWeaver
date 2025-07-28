@@ -1,5 +1,3 @@
-# Файл: screens/creation_screen.py (ФИНАЛЬНАЯ АРХИТЕКТУРНАЯ ПРАВКА v2)
-
 import asyncio
 from threading import Thread
 from kivy.clock import mainthread
@@ -7,6 +5,7 @@ from kivy.metrics import dp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.spinner import MDSpinner
 from kivymd.uix.snackbar import Snackbar
+from kivymd.app import MDApp
 from core.enrichment import enrich_phrase
 import logging
 
@@ -42,24 +41,20 @@ class CreationScreen(MDScreen):
 
     # --- КЛЮЧЕВОЕ АРХИТЕКТУРНОЕ ИСПРАВЛЕНИЕ ---
     def run_enrichment(self, deck_id, lang_code, keyword, full_sentence):
-        """
-        Запускает асинхронный код в фоновом потоке ПРАВИЛЬНЫМ СПОСОБОМ.
-        """
-        # 1. Создаем НОВЫЙ event loop специально для этого потока
+        app = MDApp.get_running_app()
+        # Получаем настройку ПЕРЕД запуском обогащения
+        target_lang = app.db_manager.get_setting('target_language', 'ru')
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-
         enriched_data = None
         try:
-            # 2. Запускаем нашу главную асинхронную задачу в этом новом loop'е
+            # Передаем ее в enrich_phrase
             enriched_data = loop.run_until_complete(
-                enrich_phrase(keyword, full_sentence, lang_code)
+                enrich_phrase(keyword, full_sentence, lang_code, target_lang)
             )
         finally:
-            # 3. Гарантированно закрываем loop после завершения работы
             loop.close()
-
-        # Передаем результат в основной поток для обновления UI
         self.go_to_curation_screen(deck_id, keyword, full_sentence, enriched_data)
 
 

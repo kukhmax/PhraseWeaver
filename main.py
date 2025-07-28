@@ -16,6 +16,7 @@ from screens.creation_screen import CreationScreen
 from screens.training_screen import TrainingScreen
 from screens.curation_screen import CurationScreen
 from screens.stats_screen import StatsScreen
+from screens.settings_screen import SettingsScreen
 
 
 Window.size = (400, 700)
@@ -27,6 +28,7 @@ ScreenManager:
     TrainingScreen:
     CurationScreen:
     StatsScreen:
+    SettingsScreen:
 
 <DeckListScreen>:
     name: 'deck_list'
@@ -37,7 +39,7 @@ ScreenManager:
             elevation: 4
             pos_hint: {"top": 1}
             left_action_items: [["chart-timeline-variant", lambda x: setattr(root.manager, 'current', 'stats_screen')]]
-            right_action_items: [["plus-box-outline", lambda x: root.show_create_deck_dialog()]]
+            right_action_items: [["dots-vertical", lambda x: root.open_main_menu()]]
         ScrollView:
             MDList:
                 id: deck_list_container
@@ -45,7 +47,42 @@ ScreenManager:
         id: add_card_button
         icon: "plus"
         pos_hint: {"right": 0.95, "bottom": 0.05}
-        on_release: root.show_create_deck_dialog()
+        on_release: root.show_add_to_deck_menu()
+
+<SettingsScreen>:
+    name: 'settings_screen'
+    MDBoxLayout:
+        orientation: 'vertical'
+        md_bg_color: app.theme_cls.bg_light
+
+        MDTopAppBar:
+            title: "Настройки"
+            left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
+
+        ScrollView:
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
+                padding: "16dp"
+                spacing: "24dp"
+
+                MDLabel:
+                    text: "Языковые настройки"
+                    font_style: "H6"
+                    adaptive_height: True
+
+                # --- ИСПРАВЛЕНО ЗДЕСЬ: Используем правильный виджет ---
+                TwoLineAvatarIconListItem:
+                    text: "Я перевожу на"
+                    secondary_text: "Русский"
+                    id: target_lang_item
+                    on_release: root.show_target_language_dialog()
+                    
+                    IconLeftWidget: # Добавляем иконку слева для красоты
+                        icon: "translate"
+
+                    IconRightWidget:
+                        icon: "chevron-down"
 <StatsScreen>:
     name: 'stats_screen'
     MDBoxLayout:

@@ -25,30 +25,36 @@ class DatabaseManager:
         try:
             with conn:
                 cursor = conn.cursor()
-                # --- Создание основных таблиц (без изменений) ---
+                # --- Существующие таблицы (без изменений) ---
                 cursor.execute("CREATE TABLE IF NOT EXISTS decks (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, lang_code TEXT NOT NULL DEFAULT 'en')")
                 cursor.execute("CREATE TABLE IF NOT EXISTS concepts (id INTEGER PRIMARY KEY, deck_id INTEGER, keyword TEXT NOT NULL, translation TEXT, full_sentence TEXT, image_path TEXT, FOREIGN KEY (deck_id) REFERENCES decks (id))")
                 cursor.execute("CREATE TABLE IF NOT EXISTS cards (id INTEGER PRIMARY KEY, concept_id INTEGER, deck_id INTEGER, front TEXT NOT NULL, back TEXT NOT NULL, card_type TEXT NOT NULL, due_date DATE DEFAULT (date('now')), interval REAL DEFAULT 1, ease_factor REAL DEFAULT 2.5, repetitions INTEGER DEFAULT 0, FOREIGN KEY (concept_id) REFERENCES concepts (id), FOREIGN KEY (deck_id) REFERENCES decks (id))")
+                cursor.execute("CREATE TABLE IF NOT EXISTS review_history (id INTEGER PRIMARY KEY, card_id INTEGER, review_date TEXT, FOREIGN KEY (card_id) REFERENCES cards (id))")
                 
-                # --- ИЗМЕНЕНИЕ: Создаем новую таблицу для истории ---
+                # --- ИЗМЕНЕНИЕ 1: Создаем новую таблицу для настроек ---
                 cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS review_history (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        card_id INTEGER NOT NULL,
-                        review_date TEXT NOT NULL,
-                        FOREIGN KEY (card_id) REFERENCES cards (id) ON DELETE CASCADE
+                    CREATE TABLE IF NOT EXISTS settings (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL
                     )
                 """)
-                # --------------------------------------------------
 
-                # Миграция для старых БД (без изменений)
+                # --- ИЗМЕНЕНИЕ 2: Устанавливаем настройку по умолчанию ---
+                # ON CONFLICT(key) DO NOTHING значит, что если настройка 'target_language'
+                # уже существует, эта команда ничего не сделает.
+                cursor.execute("""
+                    INSERT INTO settings (key, value) VALUES ('target_language', 'ru')
+                    ON CONFLICT(key) DO NOTHING
+                """)
+
+                # --- Миграция (без изменений) ---
                 cursor.execute("PRAGMA table_info(concepts)")
                 if 'image_path' not in [col[1] for col in cursor.fetchall()]:
                     cursor.execute("ALTER TABLE concepts ADD COLUMN image_path TEXT")
 
                 logging.info("Схема БД успешно инициализирована/обновлена.")
         except sqlite3.Error as e:
-            logging.error(f"Ошибка при инициализации/миграции таблиц: {e}")
+            logging.error(f"Ошибка при инициализации таблиц: {e}")
         finally:
             if conn: conn.close()
     
@@ -252,5 +258,43 @@ class DatabaseManager:
         except sqlite3.Error as e:
             logging.error(f"Ошибка при подсчете выученных карточек: {e}")
             return 0
+        finally:
+            if conn: conn.close()
+
+    def get_setting(self, key: str, default: str = None) -> str:
+        """
+        Получает значение настройки по ключу.
+        Если настройка не найдена, возвращает значение по умолчанию.
+        """
+        sql = "SELECT value FROM settings WHERE key = ?"
+        conn = self._get_connection()
+        if not conn: return default
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql, (key,))
+            row = cursor.fetchone()
+            return row['value'] if row else default
+        except sqlite3.Error as e:
+            logging.error(f"Ошибка получения настройки '{key}': {e}")
+            return default
+        finally:
+            if conn: conn.close()
+
+    def set_setting(self, key: str, value: str):
+        """
+        Сохраняет или обновляет значение настройки.
+        """
+        # REPLACE INTO - это удобная команда SQLite, которая работает как INSERT или UPDATE
+        # Если ключ уже есть - он обновит значение. Если нет - вставит новую строку.
+        sql = "REPLACE INTO settings (key, value) VALUES (?, ?)"
+        conn = self._get_connection()
+        if not conn: return
+        try:
+            with conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, (key, value))
+            logging.info(f"Настройка '{key}' установлена в '{value}'.")
+        except sqlite3.Error as e:
+            logging.error(f"Ошибка сохранения настройки '{key}': {e}")
         finally:
             if conn: conn.close()

@@ -11,7 +11,7 @@ PROMPT_TEMPLATE = """
 Для слова или фразы "{keyword}" на языке "{language}":
 1.  Придумай одно-два ключевых слова на английском для поиска картинки, которая лучше всего визуально ассоциируется с "{keyword}". Назови это поле "image_query".
 2.  Создай 5 реалистичных примеров предложений со словом "{keyword}". Используй разные грамматические формы.
-3.  Для каждого предложения предоставь точный перевод на русский язык.
+3.  Для каждого предложения предоставь точный перевод на {target_language} язык.
 4.  Критически важно: в каждом оригинальном предложении найди слово "{keyword}" (в любой его форме) и оберни его в HTML-теги <b> и </b>.
 Верни ответ ТОЛЬКО в виде валидного JSON-объекта, без каких-либо других слов или форматирования.
 Пример формата:
@@ -24,11 +24,13 @@ PROMPT_TEMPLATE = """
 }}
 """
 
-async def generate_examples_with_ai(keyword: str, language: str) -> dict | None:
+async def generate_examples_with_ai(keyword: str, language: str, target_language: str) -> dict | None:
     """
     Генерирует примеры фраз с помощью AI, создавая новый клиент для каждого вызова.
     """
-    logging.info(f"Отправка AI-запроса для '{keyword}'...")
+    
+    # logging.info(f"Отправка AI-запроса для '{keyword}'...")
+
     
     # --- КЛЮЧЕВОЕ АРХИТЕКТУРНОЕ ИСПРАВЛЕНИЕ ---
     # Мы создаем и настраиваем модель ВНУТРИ функции.
@@ -43,8 +45,12 @@ async def generate_examples_with_ai(keyword: str, language: str) -> dict | None:
     except Exception as e:
         logging.error(f"Ошибка конфигурации Gemini API: {e}")
         return None
+    
+    if not model:
+        return None
 
-    prompt = PROMPT_TEMPLATE.format(keyword=keyword, language=language)
+    prompt = PROMPT_TEMPLATE.format(keyword=keyword, language=language, target_language=target_language)
+    logging.info(f"Отправка AI-запроса для '{keyword}'...")
 
     try:
         response = await model.generate_content_async(prompt)

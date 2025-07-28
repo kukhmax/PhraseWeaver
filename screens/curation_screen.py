@@ -22,15 +22,21 @@ class CurationScreen(MDScreen):
         self.ids.image_preview.reload()
         for ex in self.enriched_data.get('examples', []):
             tagged_original = ex.get('original','')
-            translation = ex.get('translation','')
-            highlighted_kivy = tagged_original.replace('<b>', '[b]').replace('</b>', '[/b]')
-            item = TwoLineAvatarIconListItem(text=highlighted_kivy, secondary_text=translation)
+            tagged_translation = ex.get('translation','')
+            highlighted_original = tagged_original.replace('<b>', '[b]').replace('</b>', '[/b]')
+            highlighted_translation = tagged_translation.replace('<b>', '[b]').replace('</b>', '[/b]')
+            
+            item = TwoLineAvatarIconListItem(
+                text=highlighted_original, 
+                secondary_text=highlighted_translation
+            )
             item._original_phrase = re.sub(r'</?b>', '', tagged_original)
-            item._translation = translation
+            item._translation = re.sub(r'</?b>', '', tagged_translation)
             item.add_widget(IconRightWidget(icon="delete-outline", on_release=lambda x, i=item: self.delete_example(i)))
             self.ids.examples_list.add_widget(item)
 
-    def delete_example(self, list_item): self.ids.examples_list.remove_widget(list_item)
+    def delete_example(self, list_item): 
+        self.ids.examples_list.remove_widget(list_item)
     
     def save_curated_items(self):
         items = self.ids.examples_list.children

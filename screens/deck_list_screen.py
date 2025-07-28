@@ -42,35 +42,39 @@ class DeckListScreen(MDScreen):
         когда мы возвращаемся на главный экран.
         """
         Clock.schedule_once(self.load_decks, 0.1) # Небольшая задержка для плавности
+    
+    def open_main_menu(self):
+        """Открывает главное меню приложения."""
+        menu_items = [
+            {"text": "Создать колоду", "leading_icon": "plus-box-outline",
+             "on_release": self.show_create_deck_dialog},
+            {"text": "Настройки", "leading_icon": "cog-outline",
+             "on_release": lambda: setattr(self.manager, 'current', 'settings_screen')},
+        ]
+        # Привязываем меню к кнопке в TopAppBar
+        self.menu = MDDropdownMenu(
+            caller=self.manager.get_screen('deck_list').ids.deck_list_container.parent.parent.children[1].ids.right_actions, # Хитрый способ добраться до кнопки
+            items=menu_items,
+            width_mult=4
+        )
+        self.menu.open()
 
     def load_decks(self, dt=None):
         if not hasattr(self, 'app'):
             self.app = MDApp.get_running_app()
         decks = self.app.db_manager.get_all_decks()
-
         deck_list_widget = self.ids.deck_list_container
         deck_list_widget.clear_widgets()
-
         if not decks:
             item = TwoLineAvatarIconListItem(text="Колод пока нет. Создайте первую!")
             deck_list_widget.add_widget(item)
             return
-
         for deck in decks:
             review_count = self.app.db_manager.count_cards_for_review(deck['id'])
             total_count = self.app.db_manager.count_all_cards_in_deck(deck['id'])
             lang_name = SUPPORTED_LANGUAGES.get(deck['lang_code'], deck['lang_code'].upper())
-
-            item = TwoLineAvatarIconListItem(
-                text=f"{deck['name']} ({lang_name})",
-                secondary_text=f"Всего: {total_count} | К повторению: {review_count}",
-                on_release=lambda x, current_deck=deck: self.go_to_creation_screen(current_deck)
-            )
-            right_button = RightButtonWidget(
-                text="ТРЕН.", theme_text_color="Custom",
-                text_color=self.app.theme_cls.primary_color,
-                on_press=lambda x, deck_id=deck['id']: self.go_to_training(deck_id)
-            )
+            item = TwoLineAvatarIconListItem(text=f"{deck['name']} ({lang_name})", secondary_text=f"Всего: {total_count} | К повторению: {review_count}", on_release=lambda x, d=deck: self.go_to_creation_screen(d))
+            right_button = RightButtonWidget(text="ТРЕН.", theme_text_color="Custom", text_color=self.app.theme_cls.primary_color, on_press=lambda x, d_id=deck['id']: self.go_to_training(d_id))
             item.add_widget(right_button)
             deck_list_widget.add_widget(item)
 
