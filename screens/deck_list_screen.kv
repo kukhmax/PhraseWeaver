@@ -1,0 +1,18 @@
+<DeckListScreen>:
+    name: 'deck_list'
+    MDBoxLayout:
+        orientation: 'vertical'
+        MDTopAppBar:
+            title: "PhraseWeaver"
+            elevation: 4
+            pos_hint: {"top": 1}
+            left_action_items: [["chart-timeline-variant", lambda x: setattr(root.manager, 'current', 'stats_screen')]]
+            right_action_items: [["dots-vertical", lambda x: root.open_main_menu()]]
+        ScrollView:
+            MDList:
+                id: deck_list_container
+    MDFloatingActionButton:
+        id: add_card_button
+        icon: "plus"
+        pos_hint: {"right": 0.95, "bottom": 0.05}
+        on_release: root.show_add_to_deck_menu()

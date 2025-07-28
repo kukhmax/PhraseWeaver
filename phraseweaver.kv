@@ -1,0 +1,17 @@
+#:include screens/deck_list_screen.kv
+#:include screens/creation_screen.kv
+#:include screens/curation_screen.kv
+#:include screens/training_screen.kv
+#:include screens/stats_screen.kv
+#:include screens/settings_screen.kv
+
+# Это корневой виджет нашего приложения, который мы возвращаем в build()
+ScreenManager:
+    # Здесь мы просто перечисляем наши экраны. Kivy сам найдет их классы
+    # и свяжет с разметкой из подключенных выше файлов.
+    DeckListScreen:
+    CreationScreen:
+    CurationScreen:
+    TrainingScreen:
+    StatsScreen:
+    SettingsScreen:

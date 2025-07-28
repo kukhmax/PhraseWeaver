@@ -1,0 +1,49 @@
+<CreationScreen>:
+    name: 'creation_screen'
+    MDBoxLayout:
+        orientation: 'vertical'
+        MDTopAppBar:
+            title: "Создать карточку"
+            left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
+        ScrollView:
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
+                spacing: "12dp"
+                padding: "24dp"
+                MDBoxLayout:
+                    orientation: 'horizontal'
+                    adaptive_height: True
+                    spacing: "8dp"
+                    MDTextField:
+                        id: full_sentence_field
+                        hint_text: "Полное предложение (контекст)"
+                        mode: "fill"
+                        size_hint_x: 0.9
+                    MDIconButton:
+                        icon: "clipboard-arrow-down-outline"
+                        on_release: root.paste_from_clipboard()
+                        pos_hint: {"center_y": 0.5}
+                MDTextField:
+                    id: keyword_field
+                    hint_text: "Ключевая слово"
+                    mode: "fill"
+                MDRaisedButton:
+                    id: enrich_button
+                    text: "Обогатить ✨"
+                    on_release: root.enrich_button_pressed()
+                    pos_hint: {"center_x": 0.5}
+                MDBoxLayout:
+                    id: results_box
+                    orientation: 'vertical'
+                    adaptive_height: True
+                    spacing: "8dp"
+                Widget:
+                    size_hint_y: None
+                    height: dp(24)
+                MDRaisedButton:
+                    id: save_button
+                    text: "Сохранить в колоду"
+                    disabled: True
+                    on_release: root.save_concept()
+                    pos_hint: {"center_x": 0.5}

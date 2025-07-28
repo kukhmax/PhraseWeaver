@@ -1,0 +1,69 @@
+<StatsScreen>:
+    name: 'stats_screen'
+    MDBoxLayout:
+        orientation: 'vertical'
+        md_bg_color: app.theme_cls.bg_light
+
+        MDTopAppBar:
+            title: "Ваш Прогресс"
+            left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
+
+        ScrollView:
+            MDBoxLayout:
+                orientation: 'vertical'
+                adaptive_height: True
+                padding: "16dp"
+                spacing: "16dp"
+
+                # --- Карточки для ключевых показателей (KPI) ---
+                MDBoxLayout:
+                    adaptive_height: True
+                    spacing: "16dp"
+
+                    MDCard:
+                        orientation: 'vertical'
+                        padding: "8dp"
+                        size_hint_x: 0.5
+                        md_bg_color: app.theme_cls.bg_normal
+                        MDLabel:
+                            id: learned_cards_label
+                            text: "0"
+                            halign: 'center'
+                            font_style: "H4"
+                        MDLabel:
+                            text: "Карточек выучено"
+                            halign: 'center'
+                            theme_text_color: "Secondary"
+
+                    MDCard:
+                        orientation: 'vertical'
+                        padding: "8dp"
+                        size_hint_x: 0.5
+                        md_bg_color: app.theme_cls.bg_normal
+                        MDLabel:
+                            id: streak_label
+                            text: "0"
+                            halign: 'center'
+                            font_style: "H4"
+                        MDLabel:
+                            text: "Ударная серия"
+                            halign: 'center'
+                            theme_text_color: "Secondary"
+
+                # --- Карточка для графика ---
+                MDCard:
+                    orientation: 'vertical'
+                    padding: "8dp"
+                    size_hint_y: None
+                    height: "300dp"
+                    md_bg_color: app.theme_cls.bg_normal
+
+                    MDLabel:
+                        text: "Активность за последнюю неделю"
+                        halign: 'center'
+                        adaptive_height: True
+                        theme_text_color: "Secondary"
+                    
+                    # Пустой контейнер, куда мы будем вставлять график из Python
+                    MDBoxLayout:
+                        id: graph_container
