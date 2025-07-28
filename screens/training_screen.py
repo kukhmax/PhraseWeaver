@@ -37,20 +37,45 @@ class TrainingScreen(MDScreen):
     
     def _setup_card_ui(self, data):
         self.ids.question_label.text = data.get('text', '')
-        image_path = data.get('image'); self.ids.card_image.source = image_path if image_path else 'assets/placeholder.png'; self.ids.card_image.reload()
+        image_path = data.get('image'); self.ids.card_image.source = image_path if image_path else 'assets/tmp/placeholder.png'; self.ids.card_image.reload()
     
     def handle_main_action(self):
         if self._current_mode == 'show_answer': self.show_correct_answer()
         elif self._current_mode == 'check_answer': self.check_typed_answer()
-    
+
     def check_typed_answer(self):
-        user_answer, correct_answer = self.ids.answer_input.text.strip(), self.current_card['back']
+        """
+        Сравнивает введенный пользователем текст с правильным ответом,
+        ДАЕТ ВИЗУАЛЬНЫЙ И ЗВУКОВОЙ ОТКЛИК.
+        """
+        user_answer = self.ids.answer_input.text.strip()
+        correct_answer = self.current_card['back']
+        
         if user_answer.lower() == correct_answer.lower():
-            self.ids.answer_input.icon_right="check-circle"; self.ids.answer_input.icon_right_color_normal = self.app.theme_cls.primary_color
+            # Правильно!
+            self.ids.answer_input.icon_right = "check-circle"
+            self.ids.answer_input.icon_right_color_normal = self.app.theme_cls.primary_color
+            # Меняем цвет фона поля ввода на слегка зеленый
+            self.ids.answer_input.fill_color_normal = (0.2, 0.8, 0.2, 0.2) 
+            # Загружаем и проигрываем звук успеха
+            sound = SoundLoader.load('assets/tmp/correct.mp3')
+
         else:
-            self.ids.answer_input.icon_right="close-circle"; self.ids.answer_input.icon_right_color_normal = self.app.theme_cls.error_color
+            # Неправильно!
+            self.ids.answer_input.icon_right = "close-circle"
+            self.ids.answer_input.icon_right_color_normal = self.app.theme_cls.error_color
+            # Меняем цвет фона поля ввода на слегка красный
+            self.ids.answer_input.fill_color_normal = (0.8, 0.2, 0.2, 0.2)
+            # Показываем правильный ответ
             self.ids.correct_answer_label.text = f"Правильно: {correct_answer}"
-        self.ids.answer_input.disabled=True; self._show_srs_buttons(True)
+            # Загружаем и проигрываем звук ошибки
+            sound = SoundLoader.load('assets/tmp/wrong.mp3')
+        
+        if sound:
+            sound.play()
+            
+        self.ids.answer_input.disabled = True # Блокируем поле после ответа
+        self._show_srs_buttons(True)
     
     def show_correct_answer(self):
         self.ids.correct_answer_label.text = self.current_card['back']
@@ -95,10 +120,15 @@ class TrainingScreen(MDScreen):
     
     def end_training(self):
         self.ids.question_label.text = "Тренировка завершена!"; Clock.schedule_once(lambda dt: setattr(self.manager, 'current', 'deck_list'), 2)
-    
+
     def _reset_ui(self):
-        self.ids.srs_buttons.opacity=0; self.ids.srs_buttons.disabled=True; self.ids.action_button.disabled=False
-        self.ids.correct_answer_label.text=""; self.ids.answer_input.text=""; self.ids.answer_input.icon_right=""
+        """Сбрасывает UI к начальному состоянию перед показом новой карточки."""
+        self.ids.srs_buttons.opacity=0
+        self.ids.srs_buttons.disabled = True
+        self.ids.action_button.disabled = False
+        self.ids.correct_answer_label.text=""
+        self.ids.answer_input.text=""; self.ids.answer_input.icon_right=""
+        self.ids.answer_input.fill_color_normal = self.app.theme_cls.bg_light
         self._show_input_field(False)
     
     def _show_input_field(self, show: bool):

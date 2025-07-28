@@ -18,7 +18,7 @@ class CurationScreen(MDScreen):
         self.ids.examples_list.clear_widgets()
         if not self.enriched_data: return
         image_path = self.enriched_data.get('image_path')
-        self.ids.image_preview.source = image_path if image_path else 'assets/placeholder.png'
+        self.ids.image_preview.source = image_path if image_path else 'assets/tmp/placeholder.png'
         self.ids.image_preview.reload()
         for ex in self.enriched_data.get('examples', []):
             tagged_original = ex.get('original','')
@@ -45,7 +45,7 @@ class CurationScreen(MDScreen):
             return
         s = Snackbar(); s.text = "Сохранение... Это может занять несколько секунд."; s.open()
         save_data = [{'original': i._original_phrase, 'translation': i._translation} for i in reversed(items)]
-        image_path = self.ids.image_preview.source if self.ids.image_preview.source != 'assets/placeholder.png' else None
+        image_path = self.ids.image_preview.source if self.ids.image_preview.source != 'assets/tmp/placeholder.png' else None
         self.lang_code = self.manager.current_lang_code
         
         thread = Thread(target=self._blocking_save, args=(save_data, image_path))
