@@ -3,32 +3,25 @@
     MDBoxLayout:
         orientation: 'vertical'
         md_bg_color: app.theme_cls.bg_light
-
         MDTopAppBar:
-            title: "Настройки"
+            title: app.translator.t('settings_title')
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
-
         ScrollView:
             MDBoxLayout:
                 orientation: 'vertical'
                 adaptive_height: True
                 padding: "16dp"
                 spacing: "24dp"
-
                 MDLabel:
-                    text: "Языковые настройки"
+                    text: app.translator.t('language_settings')
                     font_style: "H6"
                     adaptive_height: True
-
-                # --- ИСПРАВЛЕНО ЗДЕСЬ: Используем правильный виджет ---
                 TwoLineAvatarIconListItem:
-                    text: "Я перевожу на"
+                    text: app.translator.t('translate_to')
                     secondary_text: "Русский"
                     id: target_lang_item
-                    on_release: root.show_target_language_dialog()
-                    
-                    IconLeftWidget: # Добавляем иконку слева для красоты
+                    on_release: root.show_target_language_dialog()                    
+                    IconLeftWidget:
                         icon: "translate"
-
                     IconRightWidget:
                         icon: "chevron-down"

@@ -3,24 +3,17 @@
     MDBoxLayout:
         orientation: 'vertical'
         md_bg_color: app.theme_cls.bg_light
-
         MDProgressBar:
             id: progress_bar
             value: 0
             size_hint_y: None
             height: dp(4)
-        
-        # --- ИСПРАВЛЕНО ОКОНЧАТЕЛЬНО ---
-        # ScrollView может иметь только ОДНОГО потомка.
         ScrollView:
-            # Поэтому мы создаем ОДИН главный контейнер...
             MDBoxLayout:
                 orientation: 'vertical'
                 adaptive_height: True
                 padding: "16dp"
                 spacing: "16dp"
-
-                # ... и уже ВНУТРЬ него мы кладем все наши виджеты.
                 MDCard:
                     id: question_card
                     orientation: 'vertical'
@@ -29,18 +22,16 @@
                     size_hint_y: None
                     height: dp(300)
                     radius: [12, 12, 12, 12]
-
                     Image:
                         id: card_image
-                        source: 'assets/placeholder.png'
-                        allow_stretch: True
-                
+                        source: 'assets/tmp/placeholder.png'
+                        allow_stretch: True                
                 MDBoxLayout:
                     adaptive_height: True
                     padding: "8dp"
                     MDLabel:
                         id: question_label
-                        text: "Загрузка..."
+                        text: ""
                         halign: 'center'
                         font_style: "H6"
                         adaptive_height: True
@@ -55,7 +46,7 @@
                     spacing: "8dp"
                     MDTextField:
                         id: answer_input
-                        hint_text: "Ваш ответ..."
+                        hint_text: app.translator.t('your_answer_hint')
                         mode: 'fill'
                         icon_right: ""
                         size_hint_y: None
@@ -67,13 +58,11 @@
                         halign: 'center'
                         theme_text_color: "Secondary"
                         adaptive_height: True
-
                 MDRaisedButton:
                     id: action_button
-                    text: "Показать ответ"
+                    text: app.translator.t('show_answer_button')
                     pos_hint: {"center_x": 0.5}
                     on_release: root.handle_main_action()
-
                 MDBoxLayout:
                     id: srs_buttons
                     orientation: 'horizontal'
@@ -83,11 +72,8 @@
                     opacity: 0
                     disabled: True
                     MDRaisedButton:
-                        text: "Снова"
-                        on_release: root.evaluate_answer("again")
+                        text: app.translator.t('btn_again')
                     MDRaisedButton:
-                        text: "Хорошо"
-                        on_release: root.evaluate_answer("good")
+                        text: app.translator.t('btn_good')
                     MDRaisedButton:
-                        text: "Легко"
-                        on_release: root.evaluate_answer("easy")
+                        text: app.translator.t('btn_easy')

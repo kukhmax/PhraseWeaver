@@ -29,7 +29,9 @@ class CreationScreen(MDScreen):
         keyword = self.ids.keyword_field.text.strip()
         full_sentence = self.ids.full_sentence_field.text.strip()
         if not keyword:
-            s = Snackbar(); s.text = "Ключевая фраза не может быть пустой!"; s.open()
+            s = Snackbar()
+            s.text = self.app.translator.t('no_keyword_error')
+            s.open()
             return
             
         self.show_spinner(True)

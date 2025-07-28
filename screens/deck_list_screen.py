@@ -46,9 +46,9 @@ class DeckListScreen(MDScreen):
     def open_main_menu(self):
         """Открывает главное меню приложения."""
         menu_items = [
-            {"text": "Создать колоду", "leading_icon": "plus-box-outline",
+            {"text": self.app.translator.t('create_deck'), "leading_icon": "plus-box-outline",
              "on_release": self.show_create_deck_dialog},
-            {"text": "Настройки", "leading_icon": "cog-outline",
+            {"text": self.app.translator.t('settings'), "leading_icon": "cog-outline",
              "on_release": lambda: setattr(self.manager, 'current', 'settings_screen')},
         ]
         # Привязываем меню к кнопке в TopAppBar

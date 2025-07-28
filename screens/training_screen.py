@@ -1,13 +1,18 @@
-# Файл: screens/training_screen.py
 import json, random
 from kivy.clock import Clock
 from kivy.core.audio import SoundLoader
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
+
 from core.srs import calculate_next_due_date
 
+
 class TrainingScreen(MDScreen):
-    deck_id=None; all_cards=[]; current_card=None; _current_mode=None; _session_total=0
+    deck_id=None
+    all_cards=[]
+    current_card=None
+    _current_mode=None
+    _session_total=0
     
     def on_enter(self, *args):
         # Добавляем app как свойство для легкого доступа
@@ -22,18 +27,31 @@ class TrainingScreen(MDScreen):
     
     def show_next_card(self):
         self._reset_ui()
-        if not self.all_cards: self.end_training(); return
+        if not self.all_cards:
+            self.end_training()
+            return
+
         self.current_card = self.all_cards.pop(0)
         card_type = self.current_card['card_type']
-        try: front_data = json.loads(self.current_card['front'])
-        except: front_data = {'text': self.current_card['front']}
+        
+        try:
+            front_data = json.loads(self.current_card['front'])
+        except (json.JSONDecodeError, TypeError):
+            front_data = {'text': self.current_card['front']}
+        
         self._setup_card_ui(front_data)
+
         if card_type == 'direct_recognition':
-            self.ids.action_button.text="Показать ответ"; self._current_mode='show_answer'
+            self.ids.action_button.text = self.app.translator.t('show_answer_button')
+            self._current_mode = 'show_answer'
         elif card_type in ['reverse_recall', 'context_cloze']:
-            self._show_input_field(True); self.ids.action_button.text="Проверить"; self._current_mode='check_answer'
+            self._show_input_field(True)
+            self.ids.action_button.text = self.app.translator.t('check_answer_button')
+            self._current_mode = 'check_answer'
+        
         if self._session_total > 0:
-            progress = (self._session_total - len(self.all_cards)) / self._session_total * 100; self.ids.progress_bar.value = progress
+            progress = (self._session_total - len(self.all_cards)) / self._session_total * 100
+            self.ids.progress_bar.value = progress
     
     def _setup_card_ui(self, data):
         self.ids.question_label.text = data.get('text', '')
@@ -67,7 +85,7 @@ class TrainingScreen(MDScreen):
             # Меняем цвет фона поля ввода на слегка красный
             self.ids.answer_input.fill_color_normal = (0.8, 0.2, 0.2, 0.2)
             # Показываем правильный ответ
-            self.ids.correct_answer_label.text = f"Правильно: {correct_answer}"
+            self.ids.correct_answer_label.text = self.app.translator.t('correct_answer_is', answer=correct_answer)
             # Загружаем и проигрываем звук ошибки
             sound = SoundLoader.load('assets/tmp/wrong.mp3')
         
@@ -119,7 +137,11 @@ class TrainingScreen(MDScreen):
         self.show_next_card()
     
     def end_training(self):
-        self.ids.question_label.text = "Тренировка завершена!"; Clock.schedule_once(lambda dt: setattr(self.manager, 'current', 'deck_list'), 2)
+        """Завершает тренировку."""
+        self.ids.question_label.text = self.app.translator.t('training_complete')
+        self.ids.card_image.source = ''
+        self.ids.action_button.disabled = True
+        Clock.schedule_once(lambda dt: setattr(self.manager, 'current', 'deck_list'), 2)
 
     def _reset_ui(self):
         """Сбрасывает UI к начальному состоянию перед показом новой карточки."""

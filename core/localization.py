@@ -1,8 +1,5 @@
-# Файл: core/localization.py
-
 from kivymd.app import MDApp
 
-# --- ГЛАВНЫЙ СЛОВАРЬ ПЕРЕВОДОВ ---
 TRANSLATIONS = {
     'ru': {
         # Общие
@@ -129,24 +126,21 @@ TRANSLATIONS = {
 }
 
 
-def t(key, **kwargs):
-    """
-    Главная функция-переводчик.
-    Находит строку по ключу и форматирует ее, если переданы доп. аргументы.
-    Пример: t('cards_saved_toast', count=5)
-    """
-    app = MDApp.get_running_app()
-    if not app: return key
+class Translator:
+    def __init__(self, language='ru'): # По умолчанию русский
+        self.language = language
+        self.lexicon = TRANSLATIONS.get(language, TRANSLATIONS['en'])
 
-    # Получаем язык интерфейса из настроек. По умолчанию - английский.
-    # Мы используем 'en' как fallback, т.к. он у нас наиболее полный.
-    lang = app.db_manager.get_setting('ui_language', 'en')
-    
-    # Находим строку. Если не находим в текущем языке, ищем в английском.
-    # Если и там нет - возвращаем ключ как есть.
-    string = TRANSLATIONS.get(lang, {}).get(key) or TRANSLATIONS.get('en', {}).get(key, key)
-    
-    # Подставляем переменные в строку, если они есть
-    if kwargs:
-        return string.format(**kwargs)
-    return string
+    def set_language(self, language_code):
+        self.language = language_code
+        self.lexicon = TRANSLATIONS.get(language_code, TRANSLATIONS.get('en', {}))
+
+    def t(self, key, **kwargs):
+        string = self.lexicon.get(key, key)
+        try:
+            return string.format(**kwargs) if kwargs else string
+        except KeyError: # Защита от неправильного форматирования
+            return string
+
+# Создаем ОДИН глобальный экземпляр, который будет жить в приложении
+translator = Translator()

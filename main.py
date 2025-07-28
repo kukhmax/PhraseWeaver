@@ -10,7 +10,9 @@ from kivy.core.clipboard import Clipboard
 from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.button import MDFlatButton
 
+from core.localization import translator
 from core.database import DatabaseManager
+
 from screens.deck_list_screen import DeckListScreen
 from screens.creation_screen import CreationScreen
 from screens.training_screen import TrainingScreen
@@ -19,21 +21,23 @@ from screens.stats_screen import StatsScreen
 from screens.settings_screen import SettingsScreen
 
 
-# Window.size = (400, 700)
+Window.size = (500, 800)
 
 class PhraseWeaverApp(MDApp):
+
+    translator = translator 
     sm = None
     db_manager = None
 
     def on_start(self):
         Clock.schedule_once(self.check_clipboard, 1)
+        ui_lang = self.db_manager.get_setting('ui_language', 'ru')
+        self.translator.set_language(ui_lang)
         
     def check_clipboard(self, *args):
         clipboard_text = Clipboard.get().strip()
         if not clipboard_text:
             return
-        
-        # --- ФИНАЛЬНОЕ ИЗМЕНЕНИЕ: Самый надежный способ ---
 
         # 1. Создаем АБСОЛЮТНО ПУСТОЙ Snackbar
         snackbar = Snackbar()
@@ -69,29 +73,33 @@ class PhraseWeaverApp(MDApp):
         self.theme_cls.theme_style = "Light" 
 
         self.db_manager = DatabaseManager()
-        self.sm = ScreenManager()
+        ui_lang = self.db_manager.get_setting('ui_language', 'ru')
+        self.translator.set_language(ui_lang)
         
-        screens = [
-            DeckListScreen(), CreationScreen(), CurationScreen(),
-            TrainingScreen(), StatsScreen(), SettingsScreen()
-        ]
-        for screen in screens:
+        self.sm = Builder.load_file('phraseweaver.kv')
+        
+        for screen in self.sm.screens:
             screen.app = self
-            # Убедимся, что db_manager тоже передается, если это нужно
-            if hasattr(screen, 'db_manager'):
-                 screen.db_manager = self.db_manager
-            self.sm.add_widget(screen)
+            screen.manager = self.sm # `manager` теперь тоже устанавливается здесь
+            screen.db_manager = self.db_manager
 
+        # 3. Создаем колоду по умолчанию, если нужно.
         if not self.db_manager.get_all_decks():
             self.db_manager.create_deck("General", "en")
 
+        # 4. Возвращаем готовый ScreenManager.
+        return self.sm
         return self.sm
 
-def setup_environment():
-    if not os.path.exists('assets/audio'):
-        os.makedirs('assets/audio')
+# def setup_environment():
+#     if not os.path.exists('assets/audio'):
+#         os.makedirs('assets/audio')
 
 
 if __name__ == '__main__':
-    setup_environment()
+    # Убеждаемся, что папки существуют, прямо перед запуском
+    if not os.path.exists('assets'): os.makedirs('assets/audio'); os.makedirs('assets/images')
+    if not os.path.exists('assets/audio'): os.makedirs('assets/audio')
+    if not os.path.exists('assets/images'): os.makedirs('assets/images')
+    
     PhraseWeaverApp().run()

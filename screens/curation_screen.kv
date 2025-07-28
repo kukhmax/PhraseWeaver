@@ -1,44 +1,31 @@
 <CurationScreen>:
     name: 'curation_screen'
-
     MDBoxLayout:
         orientation: 'vertical'
-
         MDTopAppBar:
-            title: "Выберите лучшее"
-            # Эта кнопка будет вести обратно на экран создания, если пользователь передумал
+            title: app.translator.t('curation_title')
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'creation_screen')]]
-        
         MDBoxLayout:
             orientation: 'vertical'
             padding: "16dp"
             spacing: "16dp"
-
-            # --- Область для картинки ---
             MDCard:
                 size_hint_y: None
-                height: "200dp" # Фиксированная высота для предпросмотра
-                # Мы будем менять 'source' из Python-кода
+                height: "200dp"
                 Image:
                     id: image_preview
-                    source: 'assets/images/placeholder.png' # ВАЖНО: нужна картинка-заглушка
+                    source: 'assets/tmp/placeholder.png'
                     allow_stretch: True
-                    keep_ratio: True
-                    fit_mode: "contain"
-
             MDLabel:
-                text: "Найденные примеры:"
+                text: app.translator.t('found_examples')
                 halign: "center"
                 font_style: "H6"
-            
-            # --- Область для списка фраз ---
+                size_hint_y: None
+                height: self.texture_size[1]
             ScrollView:
-                # Этот ScrollView займет все оставшееся место
                 MDList:
                     id: examples_list
-            
-            # --- Финальная кнопка ---
             MDRaisedButton:
-                text: "Добавить выбранное"
+                text: app.translator.t('add_selected_button')
                 pos_hint: {"center_x": 0.5}
                 on_release: root.save_curated_items()
