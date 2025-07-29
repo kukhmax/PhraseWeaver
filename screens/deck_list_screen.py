@@ -20,13 +20,21 @@ class CreateDeckDialogContent(MDBoxLayout):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        app = MDApp.get_running_app()
+
         self.orientation = "vertical"
         self.spacing = "12dp"
         self.size_hint_y = None
         self.height = "120dp"
 
-        self.deck_name_field = MDTextField(hint_text="Название колоды", mode="fill")
-        self.language_button = MDRaisedButton(text="Выберите язык")
+        self.deck_name_field = MDTextField(
+            hint_text=app.translator.t('deck_name'),
+            mode="fill"
+        )
+        self.language_button = MDRaisedButton(
+            text=app.translator.t('select_language')
+        )
         self.add_widget(self.deck_name_field)
         self.add_widget(self.language_button)
         self.selected_lang_code = None
@@ -71,15 +79,28 @@ class DeckListScreen(MDScreen):
         deck_list_widget = self.ids.deck_list_container
         deck_list_widget.clear_widgets()
         if not decks:
-            item = TwoLineAvatarIconListItem(text="Колод пока нет. Создайте первую!")
+            item = TwoLineAvatarIconListItem(text=self.app.translator.t('no_decks'))
             deck_list_widget.add_widget(item)
             return
         for deck in decks:
             review_count = self.app.db_manager.count_cards_for_review(deck['id'])
             total_count = self.app.db_manager.count_all_cards_in_deck(deck['id'])
-            lang_name = SUPPORTED_LANGUAGES.get(deck['lang_code'], deck['lang_code'].upper())
-            item = TwoLineAvatarIconListItem(text=f"{deck['name']} ({lang_name})", secondary_text=f"Всего: {total_count} | К повторению: {review_count}", on_release=lambda x, d=deck: self.go_to_creation_screen(d))
-            right_button = RightButtonWidget(text="ТРЕН.", theme_text_color="Custom", text_color=self.app.theme_cls.primary_color, on_press=lambda x, d_id=deck['id']: self.go_to_training(d_id))
+            lang_name = self.app.translator.t(deck['lang_code'])
+            total_str = self.app.translator.t('total_cards')
+            due_str = self.app.translator.t('due_cards')
+
+            item = TwoLineAvatarIconListItem(
+                text=f"{deck['name']} ({lang_name})",
+                secondary_text=f"{total_str}: {total_count} | {due_str}: {review_count}",
+                on_release=lambda x, d=deck: self.go_to_creation_screen(d)
+            )
+            
+            right_button = RightButtonWidget(
+                text=self.app.translator.t('training'), # Оставим коротким, чтобы не ломать верстку
+                theme_text_color="Custom",
+                text_color=self.app.theme_cls.primary_color,
+                on_press=lambda x, d_id=deck['id']: self.go_to_training(d_id)
+            )
             item.add_widget(right_button)
             deck_list_widget.add_widget(item)
 
@@ -100,14 +121,16 @@ class DeckListScreen(MDScreen):
     def show_create_deck_dialog(self):
         if self.dialog:
             return
+    
+        t = self.app.translator.t
 
         content = CreateDeckDialogContent()
         
         menu_items = [{
-            "text": name, "viewclass": "OneLineListItem",
-             "on_release": lambda x=code, y=content: self.set_language(x, y)
-        }
-            for code, name in SUPPORTED_LANGUAGES.items()]
+            "text": t(lang_code), # <-- Переводим здесь
+            "viewclass": "OneLineListItem",
+            "on_release": lambda x, code=lang_code, y=content: self.set_language(code, y),
+        } for lang_code in SUPPORTED_LANGUAGES.keys()]
         self.menu = MDDropdownMenu(
             caller=content.language_button,
             items=menu_items,
@@ -115,14 +138,14 @@ class DeckListScreen(MDScreen):
         )
         content.language_button.on_release = self.menu.open
         self.dialog = MDDialog(
-            title="Создать новую колоду",
+            title=t('create_new_deck'), 
             type="custom",
             content_cls=content,
-            auto_dismiss=False,
+            auto_dismiss=False, 
             buttons=[
-                MDFlatButton(text="ОТМЕНА", on_release=self.close_dialog),
-                MDRaisedButton(text="СОЗДАТЬ", on_release=lambda x: self.create_deck_action(content))
-            ]
+                MDFlatButton(text=t('cancel'), on_release=self.close_dialog),
+                MDRaisedButton(text=t('create'), on_release=lambda x: self.create_deck_action(content)),
+            ],
         )
         self.dialog.open()
 

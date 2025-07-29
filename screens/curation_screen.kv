@@ -18,6 +18,7 @@
                     source: 'assets/tmp/placeholder.png'
                     allow_stretch: True
             MDLabel:
+                id: found_examples_label
                 text: app.translator.t('found_examples')
                 halign: "center"
                 font_style: "H6"
@@ -27,7 +28,7 @@
                 MDList:
                     id: examples_list
             MDRaisedButton:
-                id: enrich_button
+                id: add_selected_button
                 text: app.translator.t('add_selected_button')
                 pos_hint: {"center_x": 0.5}
                 on_release: root.save_curated_items()

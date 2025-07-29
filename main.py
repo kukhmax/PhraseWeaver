@@ -59,13 +59,11 @@ class PhraseWeaverApp(MDApp):
         # 5. Открываем
         snackbar.open()
 
-
     def create_card_from_clipboard(self):
         text = Clipboard.get().strip()
         deck_list_screen = self.sm.get_screen('deck_list')
         # ИСПРАВЛЕНО: добавил передачу None, чтобы соответствовать определению метода
         deck_list_screen.show_add_to_deck_menu(clipboard_text=text) 
-
 
     def build(self):
         print(f"KIVYMD VERSION: {kivymd.__version__}")

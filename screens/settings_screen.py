@@ -88,11 +88,12 @@ class SettingsScreen(MDScreen):
     def set_ui_language(self, lang_code):
         self.app.db_manager.set_setting('ui_language', lang_code)
         self.app.translator.set_language(lang_code)
-        self.app.reload_ui()
-        if self.dialog:
-            self.dialog.dismiss()
-            self.dialog = None
-
+        
+        # --- ВОТ ОНА, МАГИЯ ---
+        self.app.reload_ui() 
+        
+        self.close_dialog()
+        
     def close_dialog(self, *args):
         """Этот метод теперь вызывается ВСЕГДА, когда диалог закрывается."""
         if self.dialog:

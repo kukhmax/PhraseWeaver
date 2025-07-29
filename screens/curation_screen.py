@@ -12,8 +12,9 @@ class CurationScreen(MDScreen):
     deck_id = None; lang_code = None; keyword = None; enriched_data = None
     
     def on_language_change(self):
-        # Перезагружаем колоды, т.к. в них есть переводимые строки
-        self.load_decks()
+        self.ids.top_bar.title = self.app.translator.t('curation_title')
+        self.ids.found_examples_label.text = self.app.translator.t('found_examples')
+        self.ids.add_selected_button.text = self.app.translator.t('add_selected_button')
 
     def on_pre_enter(self, *args):
         self.populate_screen()

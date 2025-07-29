@@ -17,11 +17,21 @@ class TrainingScreen(MDScreen):
     def on_language_change(self):
         self.ids.top_bar.title = self.app.translator.t('training_title')
         self.ids.answer_input.hint_text = self.app.translator.t('your_answer_hint')
-        # Обновляем текст на кнопках, так как он задается из Python
-        self.show_next_card() # Этот метод уже обновит текст главной кнопки
-        self.ids.srs_buttons.children[0].text = self.app.translator.t('btn_easy')
-        self.ids.srs_buttons.children[1].text = self.app.translator.t('btn_good')
-        self.ids.srs_buttons.children[2].text = self.app.translator.t('btn_again')
+
+        if self._current_mode == 'show_answer':
+            self.ids.action_button.text = self.app.translator.t('show_answer_button')
+        else:
+            self.ids.action_button.text = self.app.translator.t('check_answer_button')
+
+        # Обновляем кнопки SRS по их id, если они есть
+        if self.ids.srs_buttons:
+             for child in self.ids.srs_buttons.children:
+                if child.text.lower() in ['снова', 'again']:
+                    child.text = self.app.translator.t('btn_again')
+                elif child.text.lower() in ['хорошо', 'good']:
+                    child.text = self.app.translator.t('btn_good')
+                elif child.text.lower() in ['легко', 'easy']:
+                    child.text = self.app.translator.t('btn_easy')
     
     def on_enter(self, *args):
         # Добавляем app как свойство для легкого доступа

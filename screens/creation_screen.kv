@@ -3,6 +3,7 @@
     MDBoxLayout:
         orientation: 'vertical'
         MDTopAppBar:
+            id: top_bar
             title: app.translator.t('create_card_title') # ИЗМЕНЕНО
             left_action_items: [["arrow-left", lambda x: setattr(root.manager, 'current', 'deck_list')]]
         ScrollView:

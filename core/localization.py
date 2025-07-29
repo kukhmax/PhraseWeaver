@@ -15,6 +15,7 @@ TRANSLATIONS = {
         'due_cards': 'К повторению',
         'no_decks': 'Колод пока нет. Создайте первую!',
         'no_cards_for_review': 'В этой колоде нет карточек для повторения.',
+        'training': 'ТРЕН',
         
         # Create Deck Dialog (Диалог создания колоды)
         'create_new_deck': 'Создать новую колоду',
@@ -64,6 +65,10 @@ TRANSLATIONS = {
         'interface_language': 'Язык интерфейса',
         'select_ui_language': 'Выберите язык интерфейса',
         'language_name': 'Русский',
+        'en': 'Английский',
+        'es': 'Испанский',
+        'pt': 'Португальский',
+        'pl': 'Польский',
     },
     'en': {
         # General
@@ -79,6 +84,7 @@ TRANSLATIONS = {
         'due_cards': 'To Review',
         'no_decks': 'No decks yet. Create your first one!',
         'no_cards_for_review': 'No cards to review in this deck.',
+        'training': 'GO',
 
         # Create Deck Dialog
         'create_new_deck': 'Create a new deck',
@@ -128,6 +134,10 @@ TRANSLATIONS = {
         'interface_language': 'Interface Language',
         'select_ui_language': 'Select Interface Language',
         'language_name': 'English',
+        'en': 'English',
+        'es': 'Spanish',
+        'pt': 'Portuguese',
+        'pl': 'Polish',
     }
 }
 
