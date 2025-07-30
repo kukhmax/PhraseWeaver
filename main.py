@@ -7,8 +7,6 @@ from kivy.clock import Clock
 from kivy.metrics import dp
 from kivy.uix.screenmanager import ScreenManager
 from kivy.core.clipboard import Clipboard
-from kivy.core.text import LabelBase
-from kivymd.font_definitions import theme_font_styles
 from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.button import MDFlatButton
 
@@ -23,15 +21,6 @@ from screens.stats_screen import StatsScreen
 from screens.settings_screen import SettingsScreen
 
 Window.size = (460, 760)
-
-# --- РЕГИСТРАЦИЯ ШРИФТА ---
-# 1. Говорим Kivy, где найти наш шрифт
-LabelBase.register(
-    name="FredokaOne",
-    fn_regular="assets/fonts/fredoka_one.ttf")
-
-# 2. Добавляем его в список доступных стилей для KivyMD
-theme_font_styles.append('FredokaOne')
 
 
 class PhraseWeaverApp(MDApp):
@@ -79,18 +68,9 @@ class PhraseWeaverApp(MDApp):
         # 1. Меняем основную палитру на "Зеленый"
         self.theme_cls.primary_palette = "Green"
         # Можно настроить оттенок, например 'A700' для яркости
-        self.theme_cls.primary_hue = "A700"
-        
-        # 2. Устанавливаем наш новый шрифт как шрифт по умолчанию для ЗАГОЛОВКО
-        self.theme_cls.font_styles["H1"] = ("FredokaOne", 96, "Bold")
-        self.theme_cls.font_styles["H2"] = ("FredokaOne", 60, "Bold")
-        self.theme_cls.font_styles["H3"] = ("FredokaOne", 48, "Bold")
-        self.theme_cls.font_styles["H4"] = ("FredokaOne", 34, "Bold")
-        self.theme_cls.font_styles["H5"] = ("FredokaOne", 24, "Bold")
-        self.theme_cls.font_styles["H6"] = ("FredokaOne", 20, "Bold")
-        
-        self.theme_cls.primary_palette = "Indigo"
-        self.theme_cls.theme_style = "Light"
+        self.theme_cls.primary_hue = "600"
+        self.theme_cls.accent_palette = "LightGreen"
+        self.theme_cls.theme_style = "Light"  
 
         self.db_manager = DatabaseManager()
         ui_lang = self.db_manager.get_setting('ui_language', 'ru')

@@ -4,11 +4,16 @@ from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.list import TwoLineAvatarIconListItem, IRightBodyTouch
+from kivymd.uix.list import TwoLineAvatarIconListItem, IRightBodyTouch, OneLineListItem
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.snackbar import Snackbar
+from kivy.metrics import dp
+from kivymd.uix.label import MDLabel
+from kivymd.uix.card import MDCard
+
+
 
 from core.config import SUPPORTED_LANGUAGES
 
@@ -64,32 +69,50 @@ class DeckListScreen(MDScreen):
         self.load_decks()
 
     def load_decks(self, dt=None):
-        decks = self.app.db_manager.get_all_decks()
+        if not hasattr(self, 'app'): self.app = MDApp.get_running_app()
+        t = self.app.translator.t
+        self.decks = self.app.db_manager.get_all_decks()
         deck_list_widget = self.ids.deck_list_container
         deck_list_widget.clear_widgets()
-        t = self.app.translator.t
-        if not decks:
-            item = TwoLineAvatarIconListItem(text=t('no_decks'))
+
+        if not self.decks:
+            item = OneLineListItem(text=t('no_decks'))
             deck_list_widget.add_widget(item)
             return
-        for deck in decks:
-            review_count = self.app.db_manager.count_cards_for_review(
-                deck['id'])
-            total_count = self.app.db_manager.count_all_cards_in_deck(
-                deck['id'])
+
+        for deck in self.decks:
+            list_item_card = MDCard(
+                orientation='vertical', size_hint_y=None, height="72dp",
+                padding=[dp(16), 0, dp(16), 0], md_bg_color=(0,0,0,0)
+            )
+            list_item_card.bind(on_release=partial(self.go_to_creation_screen, deck))
+
+            content_box = MDBoxLayout(orientation='horizontal')
+            text_box = MDBoxLayout(orientation='vertical')
+            
+            review_count = self.app.db_manager.count_cards_for_review(deck['id'])
+            total_count = self.app.db_manager.count_all_cards_in_deck(deck['id'])
             lang_name = t(deck['lang_code'])
-            item = TwoLineAvatarIconListItem(
-                text=f"{deck['name']} ({lang_name})",
-                secondary_text=
-                f"{t('total_cards')}: {total_count} | {t('due_cards')}: {review_count}",
-                on_release=lambda x, d=deck: self.go_to_creation_screen(d))
-            right_button = RightButtonWidget(
-                text="ТРЕН.",
-                theme_text_color="Custom",
-                text_color=self.app.theme_cls.primary_color,
-                on_press=lambda x, d_id=deck['id']: self.go_to_training(d_id))
-            item.add_widget(right_button)
-            deck_list_widget.add_widget(item)
+            total_str, due_str = t('total_cards'), t('due_cards')
+
+            text_box.add_widget(MDLabel(text=f"{deck['name']} ({lang_name})", font_style="H6", adaptive_height=True, theme_text_color="Primary"))
+            text_box.add_widget(MDLabel(text=f"{total_str}: {total_count} | {due_str}: {review_count}", font_style="Caption", adaptive_height=True, theme_text_color="Secondary"))
+
+            go_button = MDRaisedButton(text="GO", on_release=partial(self.go_to_training, deck['id']))
+            
+            content_box.add_widget(text_box)
+            content_box.add_widget(go_button)
+            
+            # --- ИСПРАВЛЕНО ОКОНЧАТЕЛЬНО ---
+            # Создаем обычный BoxLayout и красим его в основной цвет
+            separator = MDBoxLayout(size_hint_y=None, height=dp(2))
+            separator.md_bg_color = self.app.theme_cls.primary_color
+            # -----------------------------
+            
+            list_item_card.add_widget(content_box)
+            list_item_card.add_widget(separator) # Добавляем нашу "линию"
+            
+            deck_list_widget.add_widget(list_item_card)
 
     def go_to_training(self, deck_id):
         t = self.app.translator.t

@@ -1,19 +1,40 @@
+# Файл: screens/deck_list_screen.kv (НОВЫЙ ДИЗАЙН)
+
+# Мы будем создавать элементы списка в Python, поэтому KV для них не нужен
+
 <DeckListScreen>:
     name: 'deck_list'
     MDBoxLayout:
         orientation: 'vertical'
+
+        # --- Верхняя панель ---
         MDTopAppBar:
             id: top_bar
-            title: app.translator.t('deck_list_title')
+            title: "PHRASE WEAVER"
+            # Используем основной цвет темы
+            md_bg_color: app.theme_cls.primary_color
+            specific_text_color: 1, 1, 1, 1 # Белый цвет текста
             elevation: 4
-            pos_hint: {"top": 1}
-            left_action_items: [["chart-timeline-variant", lambda x: setattr(root.manager, 'current', 'stats_screen')]]
-            right_action_items: [["dots-vertical", lambda x: root.open_main_menu()]]
-        ScrollView:
-            MDList:
-                id: deck_list_container
+            left_action_items: [["chart-timeline-variant", lambda x: setattr(root.manager, 'current', 'stats_screen'), "Статистика"]]
+            right_action_items: [["dots-vertical", lambda x: root.open_main_menu(), "Меню"]]
+
+        # --- Основная область ---
+        MDBoxLayout:
+            padding: "8dp" # Небольшой отступ от краев
+            ScrollView:
+                MDList:
+                    id: deck_list_container
+
+        # --- Картинка Duo ---
+        Image:
+            source: 'assets/images/duo_main.png'
+            size_hint: 1, 0.4 # Занимает 40% высоты
+
+    # --- Кнопка "+" ---
     MDFloatingActionButton:
         id: add_card_button
         icon: "plus"
+        md_bg_color: app.theme_cls.primary_color
         pos_hint: {"right": 0.95, "bottom": 0.05}
-        on_release: root.show_add_to_deck_menu()
+        on_release: root.show_create_deck_dialog()
+   
