@@ -69,6 +69,7 @@ TRANSLATIONS = {
         'es': 'Испанский',
         'pt': 'Португальский',
         'pl': 'Польский',
+        'ru': 'Русский',
     },
     'en': {
         # General
@@ -138,6 +139,7 @@ TRANSLATIONS = {
         'es': 'Spanish',
         'pt': 'Portuguese',
         'pl': 'Polish',
+        'ru': 'Russian',
     }
 }
 

@@ -20,12 +20,12 @@ from screens.curation_screen import CurationScreen
 from screens.stats_screen import StatsScreen
 from screens.settings_screen import SettingsScreen
 
-
 Window.size = (460, 760)
+
 
 class PhraseWeaverApp(MDApp):
 
-    translator = translator 
+    translator = translator
     sm = None
     db_manager = None
 
@@ -33,7 +33,7 @@ class PhraseWeaverApp(MDApp):
         Clock.schedule_once(self.check_clipboard, 1)
         ui_lang = self.db_manager.get_setting('ui_language', 'ru')
         self.translator.set_language(ui_lang)
-        
+
     def check_clipboard(self, *args):
         clipboard_text = Clipboard.get().strip()
         if not clipboard_text:
@@ -41,21 +41,20 @@ class PhraseWeaverApp(MDApp):
 
         # 1. Создаем АБСОЛЮТНО ПУСТОЙ Snackbar
         snackbar = Snackbar()
-        
+
         # 2. Устанавливаем его свойства ПОСЛЕ создания
         snackbar.text = f'Создать карточку из: "{clipboard_text[:30]}..."?'
-        
+
         # 3. Создаем кнопку
         snackbar_button = MDFlatButton(
             text="СОЗДАТЬ",
             theme_text_color="Custom",
             text_color=self.theme_cls.primary_color,
-            on_release=lambda x: self.create_card_from_clipboard()
-        )
-        
+            on_release=lambda x: self.create_card_from_clipboard())
+
         # 4. Добавляем кнопку к Snackbar
         snackbar.buttons = [snackbar_button]
-        
+
         # 5. Открываем
         snackbar.open()
 
@@ -63,22 +62,22 @@ class PhraseWeaverApp(MDApp):
         text = Clipboard.get().strip()
         deck_list_screen = self.sm.get_screen('deck_list')
         # ИСПРАВЛЕНО: добавил передачу None, чтобы соответствовать определению метода
-        deck_list_screen.show_add_to_deck_menu(clipboard_text=text) 
+        deck_list_screen.show_add_to_deck_menu(clipboard_text=text)
 
     def build(self):
         print(f"KIVYMD VERSION: {kivymd.__version__}")
         self.theme_cls.primary_palette = "Indigo"
-        self.theme_cls.theme_style = "Light" 
+        self.theme_cls.theme_style = "Light"
 
         self.db_manager = DatabaseManager()
         ui_lang = self.db_manager.get_setting('ui_language', 'ru')
         self.translator.set_language(ui_lang)
-        
+
         self.sm = Builder.load_file('phraseweaver.kv')
-        
+
         for screen in self.sm.screens:
             screen.app = self
-            screen.manager = self.sm # `manager` теперь тоже устанавливается здесь
+            screen.manager = self.sm  # `manager` теперь тоже устанавливается здесь
             screen.db_manager = self.db_manager
 
         # 3. Создаем колоду по умолчанию, если нужно.
@@ -87,7 +86,7 @@ class PhraseWeaverApp(MDApp):
 
         # 4. Возвращаем готовый ScreenManager.
         return self.sm
-        
+
     def reload_ui(self):
         """ПРОХОДИТ ПО ВСЕМ ЭКРАНАМ И ВЫЗЫВАЕТ ИХ МЕТОД ОБНОВЛЕНИЯ ЯЗЫКА."""
         for screen in self.sm.screens:
@@ -97,8 +96,10 @@ class PhraseWeaverApp(MDApp):
 
 if __name__ == '__main__':
     # Убеждаемся, что папки существуют, прямо перед запуском
-    if not os.path.exists('assets'): os.makedirs('assets/audio'); os.makedirs('assets/images')
+    if not os.path.exists('assets'):
+        os.makedirs('assets/audio')
+        os.makedirs('assets/images')
     if not os.path.exists('assets/audio'): os.makedirs('assets/audio')
     if not os.path.exists('assets/images'): os.makedirs('assets/images')
-    
+
     PhraseWeaverApp().run()

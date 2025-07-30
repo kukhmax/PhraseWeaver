@@ -18,12 +18,14 @@ except KeyError:
     logging.error("КРИТИЧЕСКАЯ ОШИБКА: Ключ PEXELS_API_KEY не установлен!")
     api = None
 
+
 async def find_image_via_api(query: str) -> str | None:
     if not api:
         return None
-    
+
     try:
         loop = asyncio.get_running_loop()
+
         def search_sync():
             # --- ИСПРАВЛЕНО ОКОНЧАТЕЛЬНО ПО ДОКУМЕНТАЦИИ ---
             search_results = api.search(query, page=1, results_per_page=1)
@@ -34,7 +36,7 @@ async def find_image_via_api(query: str) -> str | None:
                 # src - это словарь с разными размерами. Берем 'medium'.
                 return photos[0].get('src', {}).get('medium')
             return None
-        
+
         image_url = await loop.run_in_executor(None, search_sync)
         if image_url:
             logging.info(f"Найдена картинка через Pexels API: {image_url}")

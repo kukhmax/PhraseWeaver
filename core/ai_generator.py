@@ -28,17 +28,15 @@ PROMPT_TEMPLATE = """
 }}
 """
 
-async def generate_examples_with_ai(keyword: str, language: str, target_language: str) -> dict | None:
+
+async def generate_examples_with_ai(keyword: str, language: str,
+                                    target_language: str) -> dict | None:
     """
     Генерирует примеры фраз с помощью AI, создавая новый клиент для каждого вызова.
     """
-    
-    # logging.info(f"Отправка AI-запроса для '{keyword}'...")
 
-    
-    # --- КЛЮЧЕВОЕ АРХИТЕКТУРНОЕ ИСПРАВЛЕНИЕ ---
-    # Мы создаем и настраиваем модель ВНУТРИ функции.
-    # Это гарантирует, что для каждого асинхронного "движка" будет свой, свежий клиент.
+    logging.info(f"Отправка AI-запроса для '{keyword}'...")
+
     try:
         api_key = os.getenv("GOOGLE_API_KEY")
         genai.configure(api_key=api_key)
@@ -49,16 +47,20 @@ async def generate_examples_with_ai(keyword: str, language: str, target_language
     except Exception as e:
         logging.error(f"Ошибка конфигурации Gemini API: {e}")
         return None
-    
+
     if not model:
         return None
 
-    prompt = PROMPT_TEMPLATE.format(keyword=keyword, language=language, target_language=target_language)
+    prompt = PROMPT_TEMPLATE.format(keyword=keyword,
+                                    language=language,
+                                    target_language=target_language)
     logging.info(f"Отправка AI-запроса для '{keyword}'...")
 
     try:
         response = await model.generate_content_async(prompt)
-        raw_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+        raw_text = response.text.strip().replace("```json",
+                                                 "").replace("```",
+                                                             "").strip()
         data = json.loads(raw_text)
         logging.info(f"AI успешно сгенерировал данные для '{keyword}'.")
         return data
